@@ -157,8 +157,11 @@ do_install() {
             ghostscript imagemagick ufw
 
         log "Adding PHP ${PHP_VERSION} repository..."
-        if ! ls /etc/apt/sources.list.d/ 2>/dev/null | grep -qE 'ondrej|php|sury'; then
+        ensure_php_repo() {
             if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
+                # Wipe any half-added PPA that has no working data
+                rm -f /etc/apt/sources.list.d/*ondrej*ubuntu-php*.list \
+                      /etc/apt/sources.list.d/*ondrej*ubuntu-php*.sources 2>/dev/null || true
                 add-apt-repository -y ppa:ondrej/php
             else
                 curl -sSLo /tmp/sury.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
@@ -167,7 +170,22 @@ do_install() {
                     > /etc/apt/sources.list.d/php.list
             fi
             apt-get update -y
-        fi
+        }
+
+        # Retry up to 3 times — launchpad/sury can be flaky.
+        attempts=0
+        while : ; do
+            ensure_php_repo || true
+            if apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+                break
+            fi
+            attempts=$((attempts+1))
+            if [[ $attempts -ge 3 ]]; then
+                fail "php${PHP_VERSION}-fpm is still not available after 3 attempts. The PHP repository (ppa:ondrej/php on Ubuntu, packages.sury.org on Debian) is not reachable from this server. Check outbound HTTPS to ppa.launchpadcontent.net / packages.sury.org and re-run."
+            fi
+            warn "PHP repo not reachable yet (attempt $attempts/3) — retrying in 10s..."
+            sleep 10
+        done
 
         log "Installing PHP ${PHP_VERSION} + extensions..."
         apt-get install -y --no-install-recommends \
