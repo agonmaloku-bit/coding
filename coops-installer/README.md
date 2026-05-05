@@ -8,38 +8,59 @@ The installer files live in this repository under
 
 ## One-line install on a fresh server
 
-The bash script needs the `wizard/` folder next to it, so the easiest way to
-get everything in one go is to clone this repo on the target server:
+This repository is **private**, so cloning requires a GitHub token. A
+read-only deploy token is provided in the snippet below — copy/paste as is.
+The token is a fine-grained PAT scoped to this repository only with
+**Contents: Read-only**, so it cannot push or modify anything.
 
 ```bash
+GH_TOKEN=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
 sudo apt-get update && sudo apt-get install -y git
-git clone https://github.com/agonmaloku-bit/coding.git /tmp/coops
+git clone "https://agonmaloku-bit:${GH_TOKEN}@github.com/agonmaloku-bit/coding.git" /tmp/coops
 cd /tmp/coops/coops-installer
 chmod +x coops-install.sh
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://github.com/your-org/coops-app.git \
-    --repo-ui  https://github.com/your-org/coops-ui.git
+    --repo-app https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-app.git \
+    --repo-ui  https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-ui.git
 ```
 
 Then open `http://coops.example.com/install/` and finish the 6-step wizard.
 
+> The same token is reused for cloning the backend (`--repo-app`) and UI
+> (`--repo-ui`) repositories if those are private as well. If they are public,
+> drop the `agonmaloku-bit:${GH_TOKEN}@` prefix from those two URLs.
+
 ### Alternative: download the script only
 
 If you only want the script (you'll still need the `wizard/` folder next to it
-before the install completes), grab it raw from GitHub:
+before the install completes), grab it raw from GitHub with the token in an
+`Authorization` header:
 
 ```bash
-wget -O coops-install.sh https://raw.githubusercontent.com/agonmaloku-bit/coding/main/coops-installer/coops-install.sh
+GH_TOKEN=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
+curl -fSL -H "Authorization: Bearer ${GH_TOKEN}" \
+    https://raw.githubusercontent.com/agonmaloku-bit/coding/main/coops-installer/coops-install.sh \
+    -o coops-install.sh
 chmod +x coops-install.sh
 # also fetch the wizard folder, e.g. via:
-#   git clone --depth 1 https://github.com/agonmaloku-bit/coding.git /tmp/coops \
+#   git clone --depth 1 \
+#     "https://agonmaloku-bit:${GH_TOKEN}@github.com/agonmaloku-bit/coding.git" /tmp/coops \
 #     && cp -r /tmp/coops/coops-installer/wizard ./wizard
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://github.com/your-org/coops-app.git \
-    --repo-ui  https://github.com/your-org/coops-ui.git
+    --repo-app https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-app.git \
+    --repo-ui  https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-ui.git
 ```
+
+### Creating the deploy token
+
+1. https://github.com/settings/tokens?type=beta → **Generate new token**
+2. Resource owner: `agonmaloku-bit`
+3. Repository access: **Only select repositories** → tick `coding` (and the
+   backend/UI repos if private)
+4. Repository permissions → **Contents: Read-only**
+5. Save and copy the token. Use it for `GH_TOKEN` above.
 
 > **Note** — the script needs the `wizard/` folder next to it. Either
 > distribute the bundle as a tarball (`coops-installer.tar.gz`) and extract,
