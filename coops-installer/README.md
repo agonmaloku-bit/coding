@@ -3,10 +3,18 @@
 A single-file bash installer + a 6-step web wizard. Brings a fresh Ubuntu /
 Debian server from zero to a running CoOPS instance.
 
+The installer files live in this repository under
+[`coops-installer/`](https://github.com/agonmaloku-bit/coding/tree/main/coops-installer).
+
 ## One-line install on a fresh server
 
+The bash script needs the `wizard/` folder next to it, so the easiest way to
+get everything in one go is to clone this repo on the target server:
+
 ```bash
-wget -O coops-install.sh https://YOUR-HOST/coops-install.sh
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/agonmaloku-bit/coding.git /tmp/coops
+cd /tmp/coops/coops-installer
 chmod +x coops-install.sh
 sudo ./coops-install.sh install \
     --domain coops.example.com \
@@ -14,7 +22,24 @@ sudo ./coops-install.sh install \
     --repo-ui  https://github.com/your-org/coops-ui.git
 ```
 
-Then open `http://coops.example.com/install/` and finish the wizard.
+Then open `http://coops.example.com/install/` and finish the 6-step wizard.
+
+### Alternative: download the script only
+
+If you only want the script (you'll still need the `wizard/` folder next to it
+before the install completes), grab it raw from GitHub:
+
+```bash
+wget -O coops-install.sh https://raw.githubusercontent.com/agonmaloku-bit/coding/main/coops-installer/coops-install.sh
+chmod +x coops-install.sh
+# also fetch the wizard folder, e.g. via:
+#   git clone --depth 1 https://github.com/agonmaloku-bit/coding.git /tmp/coops \
+#     && cp -r /tmp/coops/coops-installer/wizard ./wizard
+sudo ./coops-install.sh install \
+    --domain coops.example.com \
+    --repo-app https://github.com/your-org/coops-app.git \
+    --repo-ui  https://github.com/your-org/coops-ui.git
+```
 
 > **Note** — the script needs the `wizard/` folder next to it. Either
 > distribute the bundle as a tarball (`coops-installer.tar.gz`) and extract,
