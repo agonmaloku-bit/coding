@@ -1,0 +1,12 @@
+# Make sure index.php (not index.html from the SPA build) is served here.
+DirectoryIndex index.php
+# Allow PHP to run inside this folder even when the parent has rewrites for the SPA.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ index.php [L]
+</IfModule>
+# Never let the wizard be cached by browsers / CDNs.
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate"
+    Header set Pragma "no-cache"
+</IfModule>
