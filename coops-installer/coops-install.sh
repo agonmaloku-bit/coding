@@ -156,36 +156,74 @@ do_install() {
             nginx mariadb-server \
             ghostscript imagemagick ufw
 
-        log "Adding PHP ${PHP_VERSION} repository..."
-        ensure_php_repo() {
-            if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
-                # Wipe any half-added PPA that has no working data
-                rm -f /etc/apt/sources.list.d/*ondrej*ubuntu-php*.list \
-                      /etc/apt/sources.list.d/*ondrej*ubuntu-php*.sources 2>/dev/null || true
-                add-apt-repository -y ppa:ondrej/php
-            else
-                curl -sSLo /tmp/sury.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
-                dpkg -i /tmp/sury.deb
-                echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
-                    > /etc/apt/sources.list.d/php.list
-            fi
-            apt-get update -y
+        # Pick the best available PHP version:
+        #   1. If user pinned --php, honor it (try repo + retry).
+        #   2. Else, if the distro already provides php>=8.2 (e.g. Ubuntu 24.04
+        #      ships php8.3), skip the third-party repo and use the distro one.
+        #   3. Else, add ondrej/sury PPA for $PHP_VERSION (default 8.2).
+        PHP_VERSION_REQUESTED="$PHP_VERSION"
+        PHP_VERSION_PINNED=0
+        for a in "$@"; do [[ "$a" == "--php" ]] && PHP_VERSION_PINNED=1; done
+        # (cheap heuristic: if PHP_VERSION differs from default 8.2, treat as pinned)
+        [[ "$PHP_VERSION" != "8.2" ]] && PHP_VERSION_PINNED=1
+
+        distro_php_candidate() {
+            # Print best distro-provided php version (e.g. 8.3) or empty.
+            for v in 8.4 8.3 8.2; do
+                if apt-cache policy "php${v}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+                    echo "$v"; return 0
+                fi
+            done
+            return 1
         }
 
-        # Retry up to 3 times — launchpad/sury can be flaky.
-        attempts=0
-        while : ; do
-            ensure_php_repo || true
-            if apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
-                break
+        if [[ $PHP_VERSION_PINNED -eq 0 ]]; then
+            distro_php="$(distro_php_candidate || true)"
+            if [[ -n "$distro_php" ]]; then
+                PHP_VERSION="$distro_php"
+                log "Using distro-provided PHP ${PHP_VERSION} (no third-party repo needed)."
             fi
-            attempts=$((attempts+1))
-            if [[ $attempts -ge 3 ]]; then
-                fail "php${PHP_VERSION}-fpm is still not available after 3 attempts. The PHP repository (ppa:ondrej/php on Ubuntu, packages.sury.org on Debian) is not reachable from this server. Check outbound HTTPS to ppa.launchpadcontent.net / packages.sury.org and re-run."
-            fi
-            warn "PHP repo not reachable yet (attempt $attempts/3) — retrying in 10s..."
-            sleep 10
-        done
+        fi
+
+        # If we still need a non-distro PHP, add the third-party repo.
+        if ! apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+            log "Adding PHP ${PHP_VERSION} repository..."
+            ensure_php_repo() {
+                if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
+                    # Wipe any half-added PPA that has no working data
+                    rm -f /etc/apt/sources.list.d/*ondrej*ubuntu-php*.list \
+                          /etc/apt/sources.list.d/*ondrej*ubuntu-php*.sources 2>/dev/null || true
+                    add-apt-repository -y ppa:ondrej/php
+                else
+                    curl -sSLo /tmp/sury.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
+                    dpkg -i /tmp/sury.deb
+                    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+                        > /etc/apt/sources.list.d/php.list
+                fi
+                apt-get update -y
+            }
+
+            attempts=0
+            while : ; do
+                ensure_php_repo || true
+                if apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+                    break
+                fi
+                attempts=$((attempts+1))
+                if [[ $attempts -ge 3 ]]; then
+                    # Last-resort fallback: if any distro PHP is available, use it.
+                    distro_php="$(distro_php_candidate || true)"
+                    if [[ -n "$distro_php" && $PHP_VERSION_PINNED -eq 0 ]]; then
+                        warn "Could not reach the PHP PPA. Falling back to distro PHP ${distro_php}."
+                        PHP_VERSION="$distro_php"
+                        break
+                    fi
+                    fail "php${PHP_VERSION}-fpm is still not available after 3 attempts. The PHP repository (ppa:ondrej/php on Ubuntu, packages.sury.org on Debian) is not reachable from this server, and the distro does not provide PHP ${PHP_VERSION}. Either fix outbound HTTPS to ppa.launchpadcontent.net / packages.sury.org, or pass --php <version> matching what the distro offers."
+                fi
+                warn "PHP repo not reachable yet (attempt $attempts/3) — retrying in 10s..."
+                sleep 10
+            done
+        fi
 
         log "Installing PHP ${PHP_VERSION} + extensions..."
         apt-get install -y --no-install-recommends \
