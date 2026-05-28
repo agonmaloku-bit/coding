@@ -8,59 +8,56 @@ The installer files live in this repository under
 
 ## One-line install on a fresh server
 
-This repository is **private**, so cloning requires a GitHub token. A
-read-only deploy token is provided in the snippet below — copy/paste as is.
-The token is a fine-grained PAT scoped to this repository only with
-**Contents: Read-only**, so it cannot push or modify anything.
+> **Workflow:** the repository is normally **private**. Before installing on a
+> new server, flip it to **public** (Settings → General → Danger Zone →
+> Change visibility → Public), run the install, then flip it back to private.
+
+While the repo is public, no GitHub token is needed:
 
 ```bash
-GH_TOKEN=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
 sudo apt-get update && sudo apt-get install -y git
-git clone "https://agonmaloku-bit:${GH_TOKEN}@github.com/agonmaloku-bit/coding.git" /tmp/coops
+git clone https://github.com/agonmaloku-bit/coding.git /tmp/coops
 cd /tmp/coops/coops-installer
 chmod +x coops-install.sh
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-app.git \
-    --repo-ui  https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-ui.git
+    --repo-app https://github.com/your-org/coops-app.git \
+    --repo-ui  https://github.com/your-org/coops-ui.git
 ```
 
 Then open `http://coops.example.com/install/` and finish the 6-step wizard.
 
-> The same token is reused for cloning the backend (`--repo-app`) and UI
-> (`--repo-ui`) repositories if those are private as well. If they are public,
-> drop the `agonmaloku-bit:${GH_TOKEN}@` prefix from those two URLs.
+> If the backend (`--repo-app`) or UI (`--repo-ui`) repositories are also
+> private, flip them to public for the same install window, or embed a
+> read-only PAT in the URL: `https://USER:TOKEN@github.com/your-org/...`
 
 ### Alternative: download the script only
 
-If you only want the script (you'll still need the `wizard/` folder next to it
-before the install completes), grab it raw from GitHub with the token in an
-`Authorization` header:
+If you only want the script (you'll still need the `wizard/` folder next to
+it before the install completes), grab it raw from GitHub:
 
 ```bash
-GH_TOKEN=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
-curl -fSL -H "Authorization: Bearer ${GH_TOKEN}" \
-    https://raw.githubusercontent.com/agonmaloku-bit/coding/main/coops-installer/coops-install.sh \
-    -o coops-install.sh
+wget -O coops-install.sh \
+    https://raw.githubusercontent.com/agonmaloku-bit/coding/main/coops-installer/coops-install.sh
 chmod +x coops-install.sh
 # also fetch the wizard folder, e.g. via:
-#   git clone --depth 1 \
-#     "https://agonmaloku-bit:${GH_TOKEN}@github.com/agonmaloku-bit/coding.git" /tmp/coops \
+#   git clone --depth 1 https://github.com/agonmaloku-bit/coding.git /tmp/coops \
 #     && cp -r /tmp/coops/coops-installer/wizard ./wizard
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-app.git \
-    --repo-ui  https://agonmaloku-bit:${GH_TOKEN}@github.com/your-org/coops-ui.git
+    --repo-app https://github.com/your-org/coops-app.git \
+    --repo-ui  https://github.com/your-org/coops-ui.git
 ```
 
-### Creating the deploy token
+### Installing while the repo stays private
 
-1. https://github.com/settings/tokens?type=beta → **Generate new token**
-2. Resource owner: `agonmaloku-bit`
-3. Repository access: **Only select repositories** → tick `coding` (and the
-   backend/UI repos if private)
-4. Repository permissions → **Contents: Read-only**
-5. Save and copy the token. Use it for `GH_TOKEN` above.
+If you'd rather not toggle visibility, you can still install using a
+fine-grained PAT with **Contents: Read-only** scoped to this repo, e.g.:
+
+```bash
+GH_TOKEN=ghp_your_readonly_token
+git clone "https://agonmaloku-bit:${GH_TOKEN}@github.com/agonmaloku-bit/coding.git" /tmp/coops
+```
 
 > **Note** — the script needs the `wizard/` folder next to it. Either
 > distribute the bundle as a tarball (`coops-installer.tar.gz`) and extract,
