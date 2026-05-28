@@ -34,6 +34,7 @@ REPO_UI=""
 NO_CLONE=0
 SKIP_OS=0
 PHP_VERSION="8.2"
+PHP_VERSION_EXPLICIT=0
 NODE_MAJOR="18"
 WEB_USER="www-data"
 SELF_URL=""
@@ -80,7 +81,7 @@ while [[ $# -gt 0 ]]; do
         --repo-ui)   REPO_UI="$2"; shift 2 ;;
         --no-clone)  NO_CLONE=1; shift ;;
         --skip-os)   SKIP_OS=1; shift ;;
-        --php)       PHP_VERSION="$2"; shift 2 ;;
+        --php)       PHP_VERSION="$2"; PHP_VERSION_EXPLICIT=1; shift 2 ;;
         --self-url)  SELF_URL="$2"; shift 2 ;;
         -h|--help)   usage; exit 0 ;;
         *) fail "Unknown option: $1" ;;
@@ -156,17 +157,16 @@ do_install() {
             nginx mariadb-server \
             ghostscript imagemagick ufw
 
+        if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
+            add-apt-repository -y universe >/dev/null 2>&1 || true
+            apt-get update -y
+        fi
+
         # Pick the best available PHP version:
         #   1. If user pinned --php, honor it (try repo + retry).
         #   2. Else, if the distro already provides php>=8.2 (e.g. Ubuntu 24.04
         #      ships php8.3), skip the third-party repo and use the distro one.
         #   3. Else, add ondrej/sury PPA for $PHP_VERSION (default 8.2).
-        PHP_VERSION_REQUESTED="$PHP_VERSION"
-        PHP_VERSION_PINNED=0
-        for a in "$@"; do [[ "$a" == "--php" ]] && PHP_VERSION_PINNED=1; done
-        # (cheap heuristic: if PHP_VERSION differs from default 8.2, treat as pinned)
-        [[ "$PHP_VERSION" != "8.2" ]] && PHP_VERSION_PINNED=1
-
         distro_php_candidate() {
             # Print best distro-provided php version (e.g. 8.3) or empty.
             for v in 8.4 8.3 8.2; do
@@ -177,11 +177,14 @@ do_install() {
             return 1
         }
 
-        if [[ $PHP_VERSION_PINNED -eq 0 ]]; then
+        if [[ $PHP_VERSION_EXPLICIT -eq 0 ]]; then
             distro_php="$(distro_php_candidate || true)"
             if [[ -n "$distro_php" ]]; then
                 PHP_VERSION="$distro_php"
                 log "Using distro-provided PHP ${PHP_VERSION} (no third-party repo needed)."
+            elif [[ "$(. /etc/os-release && echo "$ID:$VERSION_CODENAME")" == "ubuntu:noble" ]]; then
+                PHP_VERSION="8.3"
+                log "Using Ubuntu 24.04 default PHP ${PHP_VERSION}."
             fi
         fi
 
@@ -213,7 +216,7 @@ do_install() {
                 if [[ $attempts -ge 3 ]]; then
                     # Last-resort fallback: if any distro PHP is available, use it.
                     distro_php="$(distro_php_candidate || true)"
-                    if [[ -n "$distro_php" && $PHP_VERSION_PINNED -eq 0 ]]; then
+                    if [[ -n "$distro_php" && $PHP_VERSION_EXPLICIT -eq 0 ]]; then
                         warn "Could not reach the PHP PPA. Falling back to distro PHP ${distro_php}."
                         PHP_VERSION="$distro_php"
                         break
