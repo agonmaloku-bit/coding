@@ -1,0 +1,42 @@
+.info {
+    /*color: #138496 !important;*/
+    color: #159cb1 !important;
+    cursor: pointer;
+}
+
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+}
+
+.delete {
+    /*color: #f55a4e !important;*/
+    color: #dc3545 !important;
+    cursor: pointer;
+}
+
+.success {
+    color: #28a745 !important;
+    cursor: pointer;
+}
+
+.showModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.search {
+    margin-left: 6%;
+    margin-right: 6%;
+}
+
+.form-group-custom {
+    margin-bottom: 8px;
+}
+
+@media print
+{
+    .table td, .table th {
+         background-color: unset !important;
+    }
+}

@@ -1,0 +1,239 @@
+/* ============================================================
+   Phase 2 — Mobile / iOS polish
+   Loaded after design-system.css so it can override admin-lte.
+   Targets ≤768px (tablet) and ≤576px (phone).
+   ============================================================ */
+
+/* iOS safe-area insets when running as installed PWA */
+@supports (padding: max(0px)) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* --- Tablet & phone (≤768px) --- */
+@media (max-width: 768px) {
+
+    /* Tighter page padding so cards have room */
+    .content-wrapper > .content,
+    .content-wrapper .content {
+        padding: 8px !important;
+    }
+    .content-wrapper .content-header {
+        padding: 10px 12px !important;
+    }
+    .content-header h1 {
+        font-size: 1.15rem !important;
+    }
+    .content-header .breadcrumb {
+        font-size: 0.78rem !important;
+    }
+
+    /* Card chrome */
+    .card {
+        border-radius: 10px !important;
+    }
+    .card-header {
+        padding: 10px 12px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .card-body {
+        padding: 10px !important;
+    }
+
+    /* Toolbar (cardTools) — wrap nicely with gaps */
+    .card-tools,
+    .card-header > .card-tools {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin: 0 !important;
+        width: 100%;
+        float: none !important;
+    }
+    .card-tools .mr-2 { margin-right: 0 !important; }
+    .card-tools .cw-btn,
+    .card-tools .cw-view-toggle {
+        flex: 0 0 auto;
+    }
+
+    /* Search button on toolbar should not eat the row */
+    .cw-btn--search.btn {
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+    }
+
+    /* View toggle: hide the table icon on small screens.
+       Cards remain useful, kanban still toggleable. */
+    .cw-view-btn[title*="Table"] {
+        display: none !important;
+    }
+
+    /* Cards grid — denser on phones */
+    .cw-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        padding: 6px 0 !important;
+    }
+
+    /* Bill / contract card body sizing */
+    .cw-card { border-radius: 10px !important; }
+    .cw-card__body { padding: 12px !important; }
+    .cw-card__title { font-size: 0.95rem !important; }
+    .cw-card__meta { gap: 6px !important; }
+    .cw-meta-item { font-size: 0.78rem !important; }
+
+    /* Kanban: horizontal scroll with snap */
+    .cw-kanban {
+        grid-template-columns: repeat(5, 78vw) !important;
+        gap: 8px !important;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px !important;
+    }
+    .cw-kanban__col {
+        scroll-snap-align: start;
+        max-height: calc(100vh - 260px) !important;
+    }
+
+    /* Search panel — tighter on small screens */
+    .row.search1 {
+        padding: 8px !important;
+    }
+    .row.search1 .form-group { margin-bottom: 8px !important; }
+    .row.search1 label {
+        font-size: 0.78rem !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* Tap-target sizing for row action icons */
+    img.svg_icon {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 7px !important;
+    }
+    td.more_actions {
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    /* Buttons — meet 44px minimum tap size */
+    .btn,
+    .cw-btn.btn,
+    .app-button,
+    .swal2-styled {
+        min-height: 40px !important;
+    }
+
+    /* Sidebar overlay tweaks */
+    #sidebar-overlay {
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(2px);
+    }
+
+    /* Pagination wraps */
+    .Pagination,
+    .pagination {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 4px;
+    }
+
+    /* Stop wide tables from blowing the layout — let them scroll */
+    .card-body > .table,
+    .table-responsive > .table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    /* Modal: take full width and bring footer above iOS home bar */
+    .modal-dialog {
+        margin: 6px !important;
+    }
+    .modal-content {
+        border-radius: 12px !important;
+    }
+    .modal-footer {
+        padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .modal-footer .btn { flex: 1 1 auto; }
+
+    /* Form controls — slightly larger to avoid iOS auto-zoom on focus */
+    .form-control,
+    .form-control-sm,
+    .multiselect__input,
+    .multiselect__single,
+    input[type="search"],
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="url"],
+    input[type="password"],
+    select,
+    textarea {
+        font-size: 16px !important; /* prevents iOS Safari auto-zoom */
+    }
+
+    /* Multiselect dropdown — full-screen friendly */
+    .multiselect__content-wrapper,
+    .multiselect__content-fixed,
+    .multiselect__content-fixed-small {
+        max-width: 100% !important;
+        position: absolute !important;
+    }
+
+    /* flatpickr calendars — stay inside viewport */
+    .flatpickr-calendar {
+        max-width: calc(100vw - 16px) !important;
+    }
+
+    /* Dashboard tiles stack */
+    .small-box,
+    .info-box {
+        margin-bottom: 10px;
+    }
+
+    /* Hide noisy footer credit line on phones */
+    .main-footer { font-size: 0.72rem !important; padding: 8px 12px !important; }
+    .main-footer .float-right { display: none !important; }
+}
+
+/* --- Phone (≤576px) extra tightening --- */
+@media (max-width: 576px) {
+    .content-wrapper > .content,
+    .content-wrapper .content {
+        padding: 6px !important;
+    }
+    .card-body { padding: 8px !important; }
+    .cw-card__body { padding: 10px !important; }
+
+    /* Brand text in sidebar can be hidden when sidebar is collapsed; keep when open */
+    .main-sidebar .brand-link { padding: 12px !important; }
+
+    /* Header brand */
+    .main-header { min-height: 48px !important; }
+    .main-header .nav-link { padding: 0.45rem 0.55rem !important; }
+
+    /* Action icons in cards/drawer */
+    .cw-card__print {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* --- iOS-only PWA-standalone refinements --- */
+@media (display-mode: standalone) {
+    .main-header {
+        padding-top: env(safe-area-inset-top);
+    }
+    .main-sidebar {
+        padding-top: env(safe-area-inset-top);
+    }
+}

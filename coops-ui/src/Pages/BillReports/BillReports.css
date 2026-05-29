@@ -1,0 +1,12 @@
+/* BillReports page styles */
+.reports-table th {
+  background-color: #343a40;
+  color: #fff;
+}
+.reports-table tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+.btn-download {
+  font-size: 0.8rem;
+}

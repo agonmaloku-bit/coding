@@ -1,0 +1,10 @@
+<div class="error-page">
+    <h2 class="headline text-warning"> {{ $t('notFound.code') }}</h2>
+    <div class="error-content">
+        <h3><i class="fas fa-exclamation-triangle text-warning"></i> {{ $t('notFound.title') }}</h3>
+        <p>
+            {{ $t('notFound.message') }}
+            Meanwhile, you may <router-link :to="{ name: 'Home' }">{{ $t('notFound.returnHome') }}</router-link>.
+        </p>
+    </div>
+</div>

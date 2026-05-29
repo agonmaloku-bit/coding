@@ -1,0 +1,494 @@
+<div>
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6 row">
+                    <h1 class="m-0">{{ $t('workflows.title') }}</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item">
+                            <router-link to="/platform">Dashboard</router-link>
+                        </li>
+                        <li class="breadcrumb-item active">{{ $t('workflows.title') }}</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Header bar -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fas fa-project-diagram mr-2"></i>{{ $t('workflows.title') }}</h4>
+                <button class="btn btn-primary" @click="openAddModal">
+                    <i class="fas fa-plus mr-1"></i> {{ $t('workflows.addNew') }}
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="isLoadingAll" class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p class="mt-2">{{ $t('common.loading') }}</p>
+            </div>
+
+            <!-- Workflow templates list -->
+            <div v-else class="card">
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>{{ $t('workflows.name') }}</th>
+                                <th>{{ $t('workflows.type') }}</th>
+                                <th>{{ $t('workflows.company') }}</th>
+                                <th>{{ $t('workflows.steps') }}</th>
+                                <th>{{ $t('workflows.flowPreview') }}</th>
+                                <th>{{ $t('common.status') }}</th>
+                                <th>{{ $t('workflows.actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, index) in workflowTemplateList" :key="item.id">
+                                <td>{{ item.id }}</td>
+                                <td>
+                                    <strong>{{ item.name }}</strong>
+                                    <span v-if="item.is_default" class="badge-default">{{ $t('workflows.default') }}</span>
+                                </td>
+                                <td>
+                                    <span :class="item.type === 'contract' ? 'badge-contract' : 'badge-bill'">
+                                        {{ item.type === 'contract' ? $t('workflows.contract') : $t('workflows.bill') }}
+                                    </span>
+                                </td>
+                                <td>{{ item.company ? item.company.name : $t('workflows.allCompanies') }}</td>
+                                <td>{{ item.steps ? item.steps.length : 0 }}</td>
+                                <td>
+                                    <div class="workflow-flow-preview" v-if="item.steps && item.steps.length">
+                                        <template v-for="(step, si) in item.steps" :key="si">
+                                            <span class="flow-step-chip">
+                                                <strong>{{ si + 1 }}.</strong> {{ step.name }}
+                                                <small v-if="step.role">({{ step.role.name }})</small>
+                                            </span>
+                                            <span v-if="si < item.steps.length - 1" class="flow-arrow">→</span>
+                                        </template>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span v-if="item.is_active" class="badge bg-success">{{ $t('common.active') }}</span>
+                                    <span v-else class="badge-inactive">{{ $t('workflows.inactive') }}</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-info btn-sm" @click="openInfoModal(item)" :title="$t('common.moreInfo')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" @click="openEditModal(item)" :title="$t('workflows.edit')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" @click="confirmDelete(item)" :title="$t('workflows.delete')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="!workflowTemplateList || workflowTemplateList.length === 0">
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                    {{ $t('workflows.noWorkflows') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer" v-if="paginatedData && paginatedData.last_page > 1">
+                    <v-pagination
+                        v-model="query.page"
+                        :pages="paginatedData.last_page"
+                        :range-size="1"
+                        active-color="#4f46e5"
+                        @update:modelValue="onPaginationChange"
+                    />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ ADD MODAL ============ -->
+    <div class="modal fade" :class="{ show: modalAddActive }" :style="{ display: modalAddActive ? 'block' : 'none' }"
+        tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle mr-2"></i>{{ $t('workflows.addNew') }}</h5>
+                    <button type="button" class="close text-white" @click="closeModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Template info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>{{ $t('workflows.name') }}</strong></label>
+                            <input type="text" class="form-control" v-model="newTemplate.name"
+                                :placeholder="$t('workflows.namePlaceholder')">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>{{ $t('workflows.type') }}</strong></label>
+                            <select class="form-control" v-model="newTemplate.type">
+                                <option value="contract">{{ $t('workflows.contract') }}</option>
+                                <option value="bill">{{ $t('workflows.bill') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>{{ $t('workflows.company') }}</strong></label>
+                            <select class="form-control" v-model="newTemplate.company_id">
+                                <option :value="null">{{ $t('workflows.allCompanies') }}</option>
+                                <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="newIsDefault" v-model="newTemplate.is_default">
+                                <label class="form-check-label" for="newIsDefault">{{ $t('workflows.setDefault') }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="newIsActive" v-model="newTemplate.is_active">
+                                <label class="form-check-label" for="newIsActive">{{ $t('common.active') }}</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Steps builder -->
+                    <hr>
+                    <h6><i class="fas fa-list-ol mr-1"></i> {{ $t('workflows.approvalSteps') }}</h6>
+                    <div class="workflow-steps-builder">
+                        <div v-for="(step, index) in newTemplate.steps" :key="index">
+                            <div class="step-card">
+                                <div class="step-move-btns">
+                                    <button @click="moveStepUp(newTemplate.steps, index)" :disabled="index === 0" title="Move up">
+                                        <i class="fas fa-chevron-up"></i>
+                                    </button>
+                                    <button @click="moveStepDown(newTemplate.steps, index)"
+                                        :disabled="index === newTemplate.steps.length - 1" title="Move down">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <button class="step-remove" @click="removeStep(newTemplate.steps, index)"
+                                    v-if="newTemplate.steps.length > 1" :title="$t('workflows.removeStep')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="step-number">{{ index + 1 }}</span>
+                                    <strong>{{ $t('workflows.step') }} {{ index + 1 }}</strong>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.stepName') }}</label>
+                                        <input type="text" class="form-control form-control-sm" v-model="step.name"
+                                            :placeholder="$t('workflows.stepNamePlaceholder')">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.assignedRole') }}</label>
+                                        <select class="form-control form-control-sm" v-model="step.role_id">
+                                            <option :value="null" disabled>{{ $t('workflows.selectRole') }}</option>
+                                            <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.notifyRoles') }}</label>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <div v-for="r in roles" :key="r.id" class="form-check form-check-inline mr-2">
+                                                <input type="checkbox" class="form-check-input"
+                                                    :checked="step.notify_roles.includes(r.id)"
+                                                    @change="toggleNotifyRole(step, r.id)">
+                                                <label class="form-check-label small">{{ r.name }}</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <label class="small text-muted">{{ $t('common.description') }}</label>
+                                        <input type="text" class="form-control form-control-sm" v-model="step.description"
+                                            :placeholder="$t('workflows.stepDescPlaceholder')">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="step-arrow" v-if="index < newTemplate.steps.length - 1">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm mt-2" @click="addStep(newTemplate.steps)">
+                            <i class="fas fa-plus mr-1"></i> {{ $t('workflows.addStep') }}
+                        </button>
+                    </div>
+
+                    <!-- Flow preview -->
+                    <div class="mt-3" v-if="newTemplate.steps.some(s => s.name)">
+                        <h6><i class="fas fa-eye mr-1"></i> {{ $t('workflows.flowPreview') }}</h6>
+                        <div class="workflow-flow-preview">
+                            <template v-for="(step, si) in newTemplate.steps" :key="si">
+                                <span class="flow-step-chip" v-if="step.name">
+                                    <strong>{{ si + 1 }}.</strong> {{ step.name }}
+                                    <small v-if="step.role_id">({{ getRoleName(step.role_id) }})</small>
+                                </span>
+                                <span v-if="si < newTemplate.steps.length - 1 && step.name" class="flow-arrow">→</span>
+                            </template>
+                            <span class="flow-step-chip" style="background: #d4edda; border-color: #198754; color: #198754;">
+                                <i class="fas fa-check"></i> {{ $t('workflows.approved') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeModal">{{ $t('common.close') }}</button>
+                    <button type="button" class="btn btn-primary" @click="onSubmitAdd" :disabled="isCreating">
+                        <i class="fas fa-spinner fa-spin mr-1" v-if="isCreating"></i>
+                        {{ isCreating ? $t('common.saving') : $t('common.save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ EDIT MODAL ============ -->
+    <div class="modal fade" :class="{ show: modalEditActive }" :style="{ display: modalEditActive ? 'block' : 'none' }"
+        tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>{{ $t('workflows.editWorkflow') }}</h5>
+                    <button type="button" class="close" @click="closeModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Same form as add but bound to editTemplate -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>{{ $t('workflows.name') }}</strong></label>
+                            <input type="text" class="form-control" v-model="editTemplate.name">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>{{ $t('workflows.type') }}</strong></label>
+                            <select class="form-control" v-model="editTemplate.type">
+                                <option value="contract">{{ $t('workflows.contract') }}</option>
+                                <option value="bill">{{ $t('workflows.bill') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>{{ $t('workflows.company') }}</strong></label>
+                            <select class="form-control" v-model="editTemplate.company_id">
+                                <option :value="null">{{ $t('workflows.allCompanies') }}</option>
+                                <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="editIsDefault" v-model="editTemplate.is_default">
+                                <label class="form-check-label" for="editIsDefault">{{ $t('workflows.setDefault') }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="editIsActive" v-model="editTemplate.is_active">
+                                <label class="form-check-label" for="editIsActive">{{ $t('common.active') }}</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6><i class="fas fa-list-ol mr-1"></i> {{ $t('workflows.approvalSteps') }}</h6>
+                    <div class="workflow-steps-builder">
+                        <div v-for="(step, index) in editTemplate.steps" :key="index">
+                            <div class="step-card">
+                                <div class="step-move-btns">
+                                    <button @click="moveStepUp(editTemplate.steps, index)" :disabled="index === 0">
+                                        <i class="fas fa-chevron-up"></i>
+                                    </button>
+                                    <button @click="moveStepDown(editTemplate.steps, index)"
+                                        :disabled="index === editTemplate.steps.length - 1">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <button class="step-remove" @click="removeStep(editTemplate.steps, index)"
+                                    v-if="editTemplate.steps.length > 1">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="step-number">{{ index + 1 }}</span>
+                                    <strong>{{ $t('workflows.step') }} {{ index + 1 }}</strong>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.stepName') }}</label>
+                                        <input type="text" class="form-control form-control-sm" v-model="step.name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.assignedRole') }}</label>
+                                        <select class="form-control form-control-sm" v-model="step.role_id">
+                                            <option :value="null" disabled>{{ $t('workflows.selectRole') }}</option>
+                                            <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small text-muted">{{ $t('workflows.notifyRoles') }}</label>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <div v-for="r in roles" :key="r.id" class="form-check form-check-inline mr-2">
+                                                <input type="checkbox" class="form-check-input"
+                                                    :checked="step.notify_roles.includes(r.id)"
+                                                    @change="toggleNotifyRole(step, r.id)">
+                                                <label class="form-check-label small">{{ r.name }}</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <label class="small text-muted">{{ $t('common.description') }}</label>
+                                        <input type="text" class="form-control form-control-sm" v-model="step.description">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="step-arrow" v-if="index < editTemplate.steps.length - 1">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm mt-2" @click="addStep(editTemplate.steps)">
+                            <i class="fas fa-plus mr-1"></i> {{ $t('workflows.addStep') }}
+                        </button>
+                    </div>
+
+                    <!-- Flow preview -->
+                    <div class="mt-3" v-if="editTemplate.steps.some(s => s.name)">
+                        <h6><i class="fas fa-eye mr-1"></i> {{ $t('workflows.flowPreview') }}</h6>
+                        <div class="workflow-flow-preview">
+                            <template v-for="(step, si) in editTemplate.steps" :key="si">
+                                <span class="flow-step-chip" v-if="step.name">
+                                    <strong>{{ si + 1 }}.</strong> {{ step.name }}
+                                    <small v-if="step.role_id">({{ getRoleName(step.role_id) }})</small>
+                                </span>
+                                <span v-if="si < editTemplate.steps.length - 1 && step.name" class="flow-arrow">→</span>
+                            </template>
+                            <span class="flow-step-chip" style="background: #d4edda; border-color: #198754; color: #198754;">
+                                <i class="fas fa-check"></i> {{ $t('workflows.approved') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeModal">{{ $t('common.close') }}</button>
+                    <button type="button" class="btn btn-warning" @click="onSubmitEdit" :disabled="isUpdating">
+                        <i class="fas fa-spinner fa-spin mr-1" v-if="isUpdating"></i>
+                        {{ isUpdating ? $t('common.saving') : $t('common.save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ INFO MODAL ============ -->
+    <div class="modal fade" :class="{ show: modalInfoActive }" :style="{ display: modalInfoActive ? 'block' : 'none' }"
+        tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-info-circle mr-2"></i>{{ $t('workflows.workflowDetails') }}</h5>
+                    <button type="button" class="close text-white" @click="closeModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" v-if="workflowTemplate">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>{{ $t('workflows.name') }}:</strong> {{ workflowTemplate.name }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>{{ $t('workflows.type') }}:</strong>
+                                <span :class="workflowTemplate.type === 'contract' ? 'badge-contract' : 'badge-bill'">
+                                    {{ workflowTemplate.type }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>{{ $t('workflows.company') }}:</strong>
+                                {{ workflowTemplate.company ? workflowTemplate.company.name : $t('workflows.allCompanies') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <p><strong>{{ $t('workflows.default') }}:</strong>
+                                <i :class="workflowTemplate.is_default ? 'fas fa-check text-success' : 'fas fa-times text-muted'"></i>
+                            </p>
+                        </div>
+                        <div class="col-md-3">
+                            <p><strong>{{ $t('common.active') }}:</strong>
+                                <i :class="workflowTemplate.is_active ? 'fas fa-check text-success' : 'fas fa-times text-danger'"></i>
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6><i class="fas fa-list-ol mr-1"></i> {{ $t('workflows.approvalSteps') }}</h6>
+                    <div class="workflow-steps-builder">
+                        <div v-for="(step, index) in workflowTemplate.steps" :key="step.id" class="step-card">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="step-number">{{ index + 1 }}</span>
+                                <strong>{{ step.name }}</strong>
+                            </div>
+                            <p class="mb-1"><small class="text-muted">{{ $t('workflows.assignedRole') }}:</small>
+                                <strong>{{ step.role ? step.role.name : '—' }}</strong>
+                            </p>
+                            <div v-if="step.notify_roles && step.notify_roles.length" class="mb-1">
+                                <small class="text-muted">{{ $t('workflows.notifyRoles') }}:</small>
+                                <div class="notify-tags">
+                                    <span class="notify-tag" v-for="rid in step.notify_roles" :key="rid">
+                                        {{ getRoleName(rid) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <p v-if="step.description" class="mb-0"><small class="text-muted">{{ step.description }}</small></p>
+                        </div>
+                    </div>
+
+                    <!-- Flow preview -->
+                    <div class="mt-3">
+                        <h6><i class="fas fa-eye mr-1"></i> {{ $t('workflows.flowPreview') }}</h6>
+                        <div class="workflow-flow-preview">
+                            <template v-for="(step, si) in workflowTemplate.steps" :key="si">
+                                <span class="flow-step-chip">
+                                    <strong>{{ si + 1 }}.</strong> {{ step.name }}
+                                    <small v-if="step.role">({{ step.role.name }})</small>
+                                </span>
+                                <span v-if="si < workflowTemplate.steps.length - 1" class="flow-arrow">→</span>
+                            </template>
+                            <span class="flow-step-chip" style="background: #d4edda; border-color: #198754; color: #198754;">
+                                <i class="fas fa-check"></i> {{ $t('workflows.approved') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-body" v-else>
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeModal">{{ $t('common.close') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal backdrop -->
+    <div class="modal-backdrop fade show" v-if="modalAddActive || modalEditActive || modalInfoActive"
+        @click="closeModal"></div>
+</div>

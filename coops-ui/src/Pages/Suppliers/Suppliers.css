@@ -1,0 +1,44 @@
+.info {
+    /*color: #138496 !important;*/
+    color: #159cb1 !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.delete {
+    /*color: #f55a4e !important;*/
+    color: #dc3545 !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.info:hover, .edit:hover, .delete:hover {
+    opacity: 0.6;
+}
+
+.showAddModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showInfoModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showEditModal {
+    display: block;
+    padding-right: 15px;
+}
+td.more_actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+img.svg_icon {
+    width: 22px;
+}

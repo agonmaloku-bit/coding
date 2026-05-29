@@ -1,0 +1,334 @@
+.info {
+    /*color: #138496 !important;*/
+    color: #159cb1 !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.radioBtn {
+    padding-left: 80px;
+    padding-right: 80px;
+}
+.radioBtn .second{
+    float: right;
+}
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.delete {
+    /*color: #f55a4e !important;*/
+    color: #dc3545 !important;
+    cursor: pointer;
+    opacity: 1;
+}
+.info:hover, .edit:hover, .delete:hover {
+    opacity: 0.6;
+}
+
+.showAddModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showInfoModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showEditModal {
+    display: block;
+    padding-right: 15px;
+}
+td.more_actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+img.svg_icon {
+    width: 22px;
+}
+
+.camera-container {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    background: #f8f9fa;
+}
+.camera-video {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 4px;
+    object-fit: contain;
+    background: #000;
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 2: Modern Bills list — view toggle, cards grid, kanban       */
+/* (cw-* classes mirror Contracts.css for visual parity.)             */
+/* ------------------------------------------------------------------ */
+.cw-view-toggle {
+    display: inline-flex;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 2px;
+    overflow: hidden;
+}
+.cw-view-btn {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+}
+.cw-view-btn:hover { color: #0f172a; }
+.cw-view-btn.active {
+    background: #fff;
+    color: #1d4ed8;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.cw-view-btn i { font-size: 14px; }
+
+.cw-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    padding: 12px 4px 4px;
+}
+
+.cw-kanban {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 12px 4px 4px;
+    overflow-x: auto;
+}
+@media (max-width: 1280px) {
+    .cw-kanban { grid-template-columns: repeat(5, 260px); }
+}
+.cw-kanban__col {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: calc(100vh - 320px);
+}
+.cw-kanban__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    border-radius: 12px 12px 0 0;
+    z-index: 1;
+}
+.cw-kanban__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.cw-kanban__title i { font-size: 11px; color: #64748b; }
+.cw-kanban__col--request   .cw-kanban__title i { color: #d97706; }
+.cw-kanban__col--progress  .cw-kanban__title i { color: #2563eb; }
+.cw-kanban__col--approved  .cw-kanban__title i { color: #059669; }
+.cw-kanban__col--archived  .cw-kanban__title i { color: #4338ca; }
+.cw-kanban__col--delivered .cw-kanban__title i { color: #0891b2; }
+.cw-kanban__count {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    min-width: 22px;
+    text-align: center;
+}
+.cw-kanban__body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+}
+.cw-kanban__empty {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 18px 8px;
+    font-style: italic;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Modernised toolbar action buttons (Request / Export / Search)       */
+/* ------------------------------------------------------------------ */
+.cw-btn.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease,
+                border-color 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+    box-shadow: none;
+}
+.cw-btn.btn:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
+.cw-btn.btn:focus { box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18); outline: none; }
+.cw-btn.btn i { font-size: 13px; }
+.cw-btn.btn i.pr-2 { padding-right: 6px !important; }
+
+.cw-btn--primary.btn {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+}
+.cw-btn--primary.btn:hover {
+    background: #1e40af;
+    border-color: #1e40af;
+    color: #fff;
+}
+
+.cw-btn--excel.btn {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+.cw-btn--excel.btn:hover {
+    background: #047857;
+    border-color: #047857;
+    color: #fff;
+}
+
+.cw-btn--search.btn {
+    background: #fff;
+    border-color: #cbd5e1;
+    color: #64748b;
+    min-width: 240px;
+    justify-content: flex-start;
+}
+.cw-btn--search.btn:hover {
+    border-color: #94a3b8;
+    color: #334155;
+}
+.cw-btn--search.btn.active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+}
+.cw-btn--search.btn.active:hover {
+    background: #1e40af;
+    border-color: #1e40af;
+    color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
+/* AI Verification panel (info modal)                                  */
+/* ------------------------------------------------------------------ */
+.ai-verify-panel {
+    margin: 12px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 12px 14px;
+}
+.ai-verify-panel.ai-verify--ok      { border-color:#a7f3d0; background:#ecfdf5; }
+.ai-verify-panel.ai-verify--warn    { border-color:#fde68a; background:#fffbeb; }
+.ai-verify-panel.ai-verify--block   { border-color:#fecaca; background:#fef2f2; }
+.ai-verify-panel.ai-verify--error   { border-color:#fecaca; background:#fef2f2; }
+.ai-verify-panel.ai-verify--pending { border-color:#c7d2fe; background:#eef2ff; }
+
+.ai-verify__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: #0f172a;
+}
+.ai-verify__head i  { font-size: 1.05rem; }
+.ai-verify--ok      .ai-verify__head i { color:#059669; }
+.ai-verify--warn    .ai-verify__head i { color:#b45309; }
+.ai-verify--block   .ai-verify__head i { color:#b91c1c; }
+.ai-verify--error   .ai-verify__head i { color:#b91c1c; }
+.ai-verify--pending .ai-verify__head i { color:#4338ca; }
+.ai-verify__msg { color:#475569; font-weight:400; font-size:0.85rem; }
+
+.ai-verify__list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ai-verify__list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+}
+.ai-issue__sev {
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #334155;
+    height: fit-content;
+}
+.ai-verify__list li.ai-issue--ok    .ai-issue__sev { background:#d1fae5; color:#065f46; }
+.ai-verify__list li.ai-issue--warn  .ai-issue__sev { background:#fef3c7; color:#92400e; }
+.ai-verify__list li.ai-issue--block .ai-issue__sev { background:#fee2e2; color:#991b1b; }
+.ai-issue__msg {
+    color: #0f172a;
+    line-height: 1.4;
+}
+.ai-issue__msg small {
+    color: #64748b;
+    display: block;
+    margin-top: 2px;
+}
+.ai-issue__msg code {
+    background: #f1f5f9;
+    color: #1d4ed8;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+}
+.ai-verify__empty {
+    margin-top: 8px;
+    color: #065f46;
+    font-size: 0.85rem;
+    font-style: italic;
+}

@@ -21,15 +21,16 @@ cd /tmp/coops/coops-installer
 chmod +x coops-install.sh
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://github.com/your-org/coops-app.git \
-    --repo-ui  https://github.com/your-org/coops-ui.git
+    --repo-app https://github.com/agonmaloku-bit/coding.git \
+    --repo-app-subdir coops-app \
+    --repo-ui  https://github.com/agonmaloku-bit/coding.git \
+    --repo-ui-subdir coops-ui
 ```
 
 Then open `http://coops.example.com/install/` and finish the 6-step wizard.
 
-> If the backend (`--repo-app`) or UI (`--repo-ui`) repositories are also
-> private, flip them to public for the same install window, or embed a
-> read-only PAT in the URL: `https://USER:TOKEN@github.com/your-org/...`
+> The installer, backend, and UI are all stored in this same repository:
+> `coops-installer/`, `coops-app/`, and `coops-ui/`.
 
 ### Alternative: download the script only
 
@@ -45,8 +46,10 @@ chmod +x coops-install.sh
 #     && cp -r /tmp/coops/coops-installer/wizard ./wizard
 sudo ./coops-install.sh install \
     --domain coops.example.com \
-    --repo-app https://github.com/your-org/coops-app.git \
-    --repo-ui  https://github.com/your-org/coops-ui.git
+    --repo-app https://github.com/agonmaloku-bit/coding.git \
+    --repo-app-subdir coops-app \
+    --repo-ui  https://github.com/agonmaloku-bit/coding.git \
+    --repo-ui-subdir coops-ui
 ```
 
 ### Installing while the repo stays private
@@ -82,7 +85,9 @@ sudo ./coops-install.sh help
 | `--app-dir` | `/home/coops/coops-app` | Backend dir |
 | `--ui-dir`  | `/home/coops/coops-ui`  | UI source dir |
 | `--repo-app` | — | Git URL of the backend (omit with `--no-clone`) |
+| `--repo-app-subdir` | — | Backend path inside repo (for this repo: `coops-app`) |
 | `--repo-ui`  | — | Git URL of the UI |
+| `--repo-ui-subdir` | — | UI path inside repo (for this repo: `coops-ui`) |
 | `--no-clone` | off | Skip cloning (sources are already on disk) |
 | `--skip-os` | off | Skip apt / OS package installs |
 | `--php` | `8.2` | PHP version to install |

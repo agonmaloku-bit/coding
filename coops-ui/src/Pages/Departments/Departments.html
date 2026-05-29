@@ -1,0 +1,353 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('departments.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                {{ $t('sidebar.dashboard') }}
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('departments.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('departments.allDepartments') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canAdd"
+                @click="showAddModal()"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+                style="width: 90px;"
+        >{{ $t('common.addNew') }}
+        </app-button>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px;"
+                icon="fa-search"
+                icon_size="fa-sm"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table v-if="!isLoadingAll && departmentsPaginatedData"
+               class="table table-striped table-hover1 datatable table-borderless">
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('common.name') }}</th>
+                <th>{{ $t('departments.company') }}</th>
+                <th style="width: 140px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(dep, index) in departmentsPaginatedData.data" :key="index">
+                <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                <td>{{ dep.name }}</td>
+                <td v-if="dep.company">
+                    {{ dep.company.name }}
+                </td>
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(dep.id)"
+                            class="svg_icon info"
+                            src="/img/info.svg"
+                    />
+                    <img
+                            v-if="canEdit"
+                            @click="showEditModal(dep.id)"
+                            class="svg_icon edit"
+                            src="/img/edit1.svg"
+                    />
+                    <img
+                            v-if="canDelete"
+                            @click="showDeleteModal(dep.id)"
+                            class="svg_icon delete"
+                            src="/img/delete.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div
+                v-if="!isLoadingAll && departmentsPaginatedData !== null"
+                class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="departmentsPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults"
+            />
+        </div>
+        <div v-if="!canShowAll">
+            <p class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <div @click="closeModal" class="modal fade" :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"
+         id="modal-add">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button @click="showAddModal"
+                                type="button"
+                                class="close"
+                                data-dismiss="modal"
+                                aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="height:auto; overflow:auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>Col</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('departments.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isCreating) }"
+                                        name="name"
+                                        :placeholder="$t('departments.form.namePlaceholder')"
+                                        @input="addDepartmentInputAction"
+                                        ref="name"
+                                        aria-describedby="add-name-error"
+                                        required
+                                        @keyup.enter="onSubmitAdd"
+                                >
+                                <span v-if="checkIfFieldHasErrors(errors, 'name', this.isCreating)" id="add-name-error"
+                                      class="error invalid-feedback">{{ errors['name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('departments.form.company') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectCompany"
+                                        :options="companyList"
+                                        :placeholder="$t('departments.form.companyPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isCreating) }"
+                                        aria-describedby="company-error"
+                                        :fixed="true"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isCreating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="showAddModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isCreating"
+                                @click="onSubmitAdd"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isCreating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="department" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="showInfoModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="height:auto; overflow:auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>Col</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('common.id') }}</td>
+                            <td>{{ department.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.name') }}</td>
+                            <td>{{ department.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('departments.company') }}</td>
+                            <td v-if="department.company">
+                                {{ department.company.name }}
+                            </td>
+                            <td v-else>{{ $t('departments.noCompany') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.createdAt') }}</td>
+                            <td>{{ new Date(department.created_at).toLocaleString() }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.lastModifiedAt') }}</td>
+                            <td>{{ new Date(department.updated_at).toLocaleString() }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                    >{{ $t('common.print') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="department" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }" id="modal-edit">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button @click="showEditModal"
+                                type="button"
+                                class="close"
+                                data-dismiss="modal"
+                                aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="height:auto; overflow:auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>Col</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('common.id') }}</td>
+                            <td><input type="text" class="form-control" name="id" :value="department.id" readonly></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('departments.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isUpdating) }"
+                                        name="name"
+                                        :value="department.name"
+                                        @input="updateDepartmentInputAction"
+                                        aria-describedby="name-error"
+                                        required
+                                        @keyup.enter="onSubmitEdit"
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'name', this.isUpdating)"
+                                        id="name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('departments.form.company') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editCompany"
+                                        :options="companyList"
+                                        :placeholder="$t('departments.form.companyPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isUpdating) }"
+                                        aria-describedby="company-error"
+                                        :fixed="true"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isUpdating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="showEditModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isUpdating"
+                                @click="onSubmitEdit"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isUpdating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>

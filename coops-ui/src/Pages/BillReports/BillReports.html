@@ -1,0 +1,113 @@
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-7">
+        <h1 class="m-0">{{ $t('billReports.title') }}</h1>
+        <p style="color:#64748b;font-size:0.9rem;margin-top:4px;">{{ $t('billReports.subtitle') }}</p>
+      </div>
+      <div class="col-sm-5">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item">
+            <router-link to="/platform">{{ $t('sidebar.dashboard') }}</router-link>
+          </li>
+          <li class="breadcrumb-item">
+            <router-link to="/platform/apps/bills">{{ $t('sidebar.billsInvoices') }}</router-link>
+          </li>
+          <li class="breadcrumb-item active">{{ $t('billReports.title') }}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <div class="card card-default">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-file-pdf mr-2" style="color:#dc3545;"></i>
+          {{ $t('billReports.cardTitle') }}
+        </h3>
+      </div>
+      <div class="card-body p-0">
+
+        <!-- Loading -->
+        <div v-if="loading" class="text-center py-5">
+          <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else-if="!loading && reports.length === 0" class="text-center py-5 text-muted">
+          <i class="fas fa-folder-open fa-3x mb-3"></i>
+          <p>{{ $t('billReports.noReports') }}</p>
+        </div>
+
+        <!-- Table -->
+        <table v-else class="table table-hover mb-0 reports-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">#</th>
+              <th>{{ $t('billReports.colSerial') }}</th>
+              <th>{{ $t('billReports.colDate') }}</th>
+              <th>{{ $t('billReports.colGeneratedBy') }}</th>
+              <th style="width:100px; text-align:center;">{{ $t('billReports.colBillCount') }}</th>
+              <th style="width:120px; text-align:center;">{{ $t('billReports.colActions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(report, index) in reports" :key="report.id">
+              <td>{{ index + 1 }}</td>
+              <td>
+                <strong>{{ report.serial_number }}</strong>
+              </td>
+              <td>{{ report.generated_at }}</td>
+              <td>{{ report.generated_by }}</td>
+              <td class="text-center">
+                <span class="badge badge-info">{{ report.bill_count }}</span>
+              </td>
+              <td class="text-center">
+                <button
+                  class="btn btn-sm btn-outline-danger btn-download"
+                  @click="downloadReport(report)"
+                  :disabled="report.downloading"
+                  :title="$t('billReports.download')"
+                >
+                  <i class="fas fa-file-pdf mr-1"></i>
+                  <span v-if="report.downloading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </span>
+                  <span v-else>{{ $t('billReports.download') }}</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
+      <!-- Pagination -->
+      <div v-if="total > perPage" class="card-footer d-flex justify-content-between align-items-center">
+        <small class="text-muted">{{ $t('billReports.showing', { count: reports.length, total: total }) }}</small>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" :class="{ disabled: page <= 1 }">
+              <a class="page-link" href="#" @click.prevent="loadPage(page - 1)">&laquo;</a>
+            </li>
+            <li
+              v-for="p in totalPages"
+              :key="p"
+              class="page-item"
+              :class="{ active: p === page }"
+            >
+              <a class="page-link" href="#" @click.prevent="loadPage(p)">{{ p }}</a>
+            </li>
+            <li class="page-item" :class="{ disabled: page >= totalPages }">
+              <a class="page-link" href="#" @click.prevent="loadPage(page + 1)">&raquo;</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+</section>

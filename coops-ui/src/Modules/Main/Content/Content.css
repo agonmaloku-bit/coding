@@ -1,0 +1,5 @@
+.card_body {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}

@@ -1,0 +1,19 @@
+<li class="nav-item" :class="{'menu-open': isMenuExtended}">
+    <a
+            class="nav-link"
+            :class="{'active': isMainActive || isOneOfChildrenActive}"
+            @click="handleMainMenuAction"
+    >
+        <i class="nav-icon" :class="icon"></i>
+        <p>{{ menuItem.name }}</p>
+        <i v-if="isExpandable" class="right fas fa-angle-left"></i>
+    </a>
+    <ul class="nav nav-treeview" v-for="(item, index) in menuItem.children" :key="index">
+        <li class="nav-item">
+            <router-link :to="item.path" class="nav-link" exact exact-active-class="active">
+                <i class="far fa-circle nav-icon"></i>
+                <p>{{ item.name }}</p>
+            </router-link>
+        </li>
+    </ul>
+</li>

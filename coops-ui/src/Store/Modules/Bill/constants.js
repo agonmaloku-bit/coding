@@ -1,0 +1,41 @@
+export const SCOPE = `PMK/Bill`;
+
+export const BILL_LIST_GETTER = `${SCOPE}/BILL_LIST_GETTER`;
+export const BILLS_PAGINATED_DATA_GETTER = `${SCOPE}/billsPaginatedData`;
+export const BILL_GETTER = `${SCOPE}/bill`;
+export const NEW_BILL_GETTER = `${SCOPE}/newBill`;
+export const FIRST_TIME_LOADED_GETTER = `${SCOPE}/firstTimeLoaded`;
+export const IS_LOADING_ALL_GETTER = `${SCOPE}/isLoadingAll`;
+export const IS_LOADING_GETTER = `${SCOPE}/isLoading`;
+export const IS_CREATING_GETTER = `${SCOPE}/isCreating`;
+export const CREATED_DATA_GETTER = `${SCOPE}/createdData`;
+export const IS_UPDATING_GETTER = `${SCOPE}/isUpdating`;
+export const UPDATED_DATA_GETTER = `${SCOPE}/updatedData`;
+export const IS_DELETING_GETTER = `${SCOPE}/isDeleting`;
+export const DELETED_DATA_GETTER = `${SCOPE}/deletedData`;
+export const ERRORS_GETTER = `${SCOPE}/errors`;
+
+export const FETCH_ALL_BILLS_ACTION = `${SCOPE}/fetchAllBills`;
+export const FETCH_DETAIL_BILL_ACTION = `${SCOPE}/fetchDetailBill`;
+export const STORE_BILL_ACTION = `${SCOPE}/storeBill`;
+export const UPDATE_BILL_ACTION = `${SCOPE}/updateBill`;
+export const DELETE_BILL_ACTION = `${SCOPE}/deleteBill`;
+export const REMOVE_FILE_ACTION = `${SCOPE}/RemoveFile`;
+export const ADD_BILL_INPUT_ACTION = `${SCOPE}/addBillInput`;
+export const UPDATE_BILL_INPUT_ACTION = `${SCOPE}/updateBillInput`;
+export const SET_ERRORS_ACTION = `${SCOPE}/setErrors`;
+
+export const SET_BILLS_MUTATION = `${SCOPE}/setBills`;
+export const SET_BILLS_PAGINATED_MUTATION = `${SCOPE}/setBillsPaginated`;
+export const SET_BILL_DETAIL_MUTATION = `${SCOPE}/setBillDetail`;
+export const SET_BILL_ARE_LOADING_MUTATION = `${SCOPE}/setBillsAreLoading`;
+export const SET_BILLS_LOADED_MUTATION = `${SCOPE}/setBillsLoaded`;
+export const SET_BILL_IS_LOADING_MUTATION = `${SCOPE}/setBillIsLoading`;
+export const SAVE_NEW_BILLS_MUTATION = `${SCOPE}/saveNewBills`;
+export const SET_BILL_IS_CREATING_MUTATION = `${SCOPE}/setBillIsCreating`;
+export const SAVE_UPDATED_BILL_MUTATION = `${SCOPE}/saveUpdatedBill`;
+export const SET_BILL_IS_UPDATING_MUTATION = `${SCOPE}/setBillIsUpdating`;
+export const SET_BILL_ADD_INPUT_MUTATION = `${SCOPE}/setBillAddInput`;
+export const SET_BILL_DETAIL_INPUT_MUTATION = `${SCOPE}/setBillDetailInput`;
+export const SET_BILL_IS_DELETING_MUTATION = `${SCOPE}/setBillIsDeleting`;
+export const SET_ERRORS_MUTATION = `${SCOPE}/setErrors`;

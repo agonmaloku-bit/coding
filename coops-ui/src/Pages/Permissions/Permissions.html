@@ -1,0 +1,304 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('permissions.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                {{ $t('sidebar.dashboard') }}
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('permissions.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('permissions.allPermissions') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px;"
+                icon="fa-search"
+                icon_size="fa-sm"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table v-if="!isLoadingAll && permissionsPaginatedData"
+               class="table table-striped table-hover1 datatable table-borderless">
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th style="width: 250px">{{ $t('common.name') }}</th>
+                <th>{{ $t('permissions.comment') }}</th>
+                <th style="width: 100px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in permissionsPaginatedData.data" :key="index">
+                <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                <td>{{ item.name }}</td>
+                <td class="text-muted">{{ item.comment || '-' }}</td>
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(item.id)"
+                            class="svg_icon info"
+                            src="/img/info.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div v-if="!isLoadingAll && permissionsPaginatedData !== null"
+             class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="permissionsPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults"
+            />
+        </div>
+        <div v-if="!canShowAll">
+            <p class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <!--    <div @click="closeModal" class="modal fade" :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"-->
+    <!--         id="modal-add">-->
+    <!--      <div class="modal-dialog" style="max-width: 50%;">-->
+    <!--        <div @click.stop="modalContent" class="modal-content">-->
+    <!--          <div class="modal-header">-->
+    <!--            <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>-->
+    <!--            <app-button @click="closeModal"-->
+    <!--                        type="button"-->
+    <!--                        class="close"-->
+    <!--                        data-dismiss="modal"-->
+    <!--                        aria-label="Close">-->
+    <!--              <span aria-hidden="true">&times;</span>-->
+    <!--            </app-button>-->
+    <!--          </div>-->
+    <!--          <div class="modal-body p-0" style="height:auto; overflow:auto;">-->
+    <!--            <table v-if="!isLoading" id="printTable" class="table table-hover table-borderless table-striped p-0">-->
+    <!--              <thead>-->
+    <!--              <tr>-->
+    <!--                <th>Col</th>-->
+    <!--                <th>Info</th>-->
+    <!--              </tr>-->
+    <!--              </thead>-->
+    <!--              <tbody>-->
+    <!--              <tr>-->
+    <!--                <td>Module name: *</td>-->
+    <!--                <td>-->
+    <!--                  <VueMultiselect-->
+    <!--                      v-model="permissionmodules"-->
+    <!--                      :options="modulesLis\t"-->
+    <!--                      :searchable="true"-->
+    <!--                      :show-labels="false"-->
+    <!--                      placeholder="Select a module"-->
+    <!--                      track-by="slug"-->
+    <!--                      label="name"-->
+    <!--                      :allow-empty="false"-->
+    <!--                      :fixed="true"-->
+    <!--                  />-->
+    <!--                </td>-->
+    <!--              </tr>-->
+    <!--              <tr>-->
+    <!--                <td>Permission Type: *</td>-->
+    <!--                <td>-->
+    <!--&lt;!&ndash;                  <input type="text" class="form-control" :class="{ 'is-invalid': errors }" name="name"&ndash;&gt;-->
+    <!--&lt;!&ndash;                         placeholder="Permission name" @input="addPermissionInputAction"&ndash;&gt;-->
+    <!--&lt;!&ndash;                         aria-describedby="add-name-error" required>&ndash;&gt;-->
+    <!--&lt;!&ndash;                  <span v-if="errors" id="add-name-error" class="error invalid-feedback">{{ errors['name'][0] }}</span>&ndash;&gt;-->
+    <!--                  <VueMultiselect-->
+    <!--                      v-model="permissionTypesComputed"-->
+    <!--                      :options="permissionTypes"-->
+    <!--                      :searchable="true"-->
+    <!--                      :show-labels="false"-->
+    <!--                      placeholder="Select a module"-->
+    <!--                      track-by="slug"-->
+    <!--                      label="name"-->
+    <!--                      :allow-empty="false"-->
+    <!--                      aria-describedby="add-name-error"-->
+    <!--                      :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isCreating) }"-->
+    <!--                      :fixed="true"-->
+    <!--                  />-->
+    <!--                  <span v-if="checkIfFieldHasErrors(errors, 'name', this.isCreating)" id="add-name-error" class="error invalid-feedback">{{ errors['name'][0] }}</span>-->
+    <!--                </td>-->
+    <!--              </tr>-->
+    <!--              </tbody>-->
+    <!--            </table>-->
+    <!--            <app-loader v-if="isLoading"></app-loader>-->
+    <!--          </div>-->
+    <!--          <div class="modal-footer justify-content-between">-->
+    <!--            <app-button @click="closeModal"-->
+    <!--                        type="button"-->
+    <!--                        class="btn-default"-->
+    <!--                        data-dismiss="modal"-->
+    <!--            >Close-->
+    <!--            </app-button>-->
+    <!--            <app-button @click="onSubmitAdd"-->
+    <!--                        type="button"-->
+    <!--                        class="btn-primary"-->
+    <!--            >Save-->
+    <!--            </app-button>-->
+    <!--          </div>-->
+    <!--        </div>-->
+    <!--      </div>-->
+    <!--    </div>-->
+
+    <div v-if="permission" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%; margin-top: 80px;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="height:auto; overflow:auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('common.id') }}</td>
+                            <td>{{ permission.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.name') }}</td>
+                            <td>{{ permission.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('permissions.comment') }}</td>
+                            <td>{{ permission.comment || '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.createdAt') }}</td>
+                            <td>{{ new Date(permission.created_at).toDateString() }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                    >{{ $t('common.print') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--    <div v-if="permission" @click="closeModal" class="modal fade"-->
+    <!--         :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }" id="modal-edit">-->
+    <!--        <div class="modal-dialog" style="max-width: 50%;">-->
+    <!--            <div @click.stop="modalContent" class="modal-content">-->
+    <!--                <div class="modal-header">-->
+    <!--                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>-->
+    <!--                    <app-button @click="closeModal"-->
+    <!--                                type="button"-->
+    <!--                                class="close"-->
+    <!--                                data-dismiss="modal"-->
+    <!--                                aria-label="Close">-->
+    <!--                        <span aria-hidden="true">&times;</span>-->
+    <!--                    </app-button>-->
+    <!--                </div>-->
+    <!--                <div class="modal-body p-0" style="height:auto; overflow:auto;">-->
+    <!--                    <table v-if="!isLoading" id="printTable" class="table table-hover table-borderless table-striped p-0">-->
+    <!--                        <thead>-->
+    <!--                        <tr>-->
+    <!--                            <th>Col</th>-->
+    <!--                            <th>Description</th>-->
+    <!--                        </tr>-->
+    <!--                        </thead>-->
+    <!--                        <tbody>-->
+    <!--                        <tr>-->
+    <!--                            <td>Id: *</td>-->
+    <!--                            <td>-->
+    <!--                                <input-->
+    <!--                                        type="text"-->
+    <!--                                        class="form-control"-->
+    <!--                                        name="id"-->
+    <!--                                        :value="permission.id"-->
+    <!--                                        readonly-->
+    <!--                                ></td>-->
+    <!--                        </tr>-->
+    <!--                        <tr>-->
+    <!--                            <td>Module name: *</td>-->
+    <!--                            <td>-->
+    <!--                                <VueMultiselect-->
+    <!--                                        v-model="permissionModulesEdit"-->
+    <!--                                        :options="modulesList"-->
+    <!--                                        :searchable="true"-->
+    <!--                                        :show-labels="false"-->
+    <!--                                        placeholder="Select a module"-->
+    <!--                                        track-by="slug"-->
+    <!--                                        label="name"-->
+    <!--                                        :allow-empty="false"-->
+    <!--                                        :fixed="true"-->
+    <!--                                />-->
+    <!--                            </td>-->
+    <!--                        </tr>-->
+    <!--                        <tr>-->
+    <!--                            <td>Permission Type: *</td>-->
+    <!--                            <td>-->
+    <!--                                &lt;!&ndash;                  <input type="text" class="form-control" :class="{ 'is-invalid': errors }" name="name"&ndash;&gt;-->
+    <!--                                &lt;!&ndash;                         placeholder="Permission name" @input="addPermissionInputAction"&ndash;&gt;-->
+    <!--                                &lt;!&ndash;                         aria-describedby="add-name-error" required>&ndash;&gt;-->
+    <!--                                &lt;!&ndash;                  <span v-if="errors" id="add-name-error" class="error invalid-feedback">{{ errors['name'][0] }}</span>&ndash;&gt;-->
+    <!--                                <VueMultiselect-->
+    <!--                                        v-model="permissionTypesEdit"-->
+    <!--                                        :options="permissionTypes"-->
+    <!--                                        :searchable="true"-->
+    <!--                                        :show-labels="false"-->
+    <!--                                        placeholder="Select a permission type"-->
+    <!--                                        track-by="slug"-->
+    <!--                                        label="name"-->
+    <!--                                        :allow-empty="false"-->
+    <!--                                        aria-describedby="add-name-error"-->
+    <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name') }"-->
+    <!--                                        :fixed="true"-->
+    <!--                                />-->
+    <!--                                <span v-if="checkIfFieldHasErrors(errors, 'name')" id="add-name-error" class="error invalid-feedback">{{ errors['name'][0] }}</span>-->
+    <!--                            </td>-->
+    <!--                        </tr>-->
+    <!--                        </tbody>-->
+    <!--                    </table>-->
+    <!--                    <app-loader v-if="isLoading"></app-loader>-->
+    <!--                </div>-->
+    <!--                <div class="modal-footer justify-content-between">-->
+    <!--                    <app-button @click="closeModal"-->
+    <!--                                type="button"-->
+    <!--                                class="btn-default"-->
+    <!--                                data-dismiss="modal"-->
+    <!--                    >Close-->
+    <!--                    </app-button>-->
+    <!--                    <app-button @click="onSubmitEdit"-->
+    <!--                                type="button"-->
+    <!--                                class="btn-primary"-->
+    <!--                    >Save-->
+    <!--                    </app-button>-->
+    <!--                </div>-->
+    <!--            </div>-->
+    <!--        </div>-->
+    <!--    </div>-->
+</teleport>

@@ -1,0 +1,37 @@
+.info {
+    /*color: #138496 !important;*/
+    color: #159cb1 !important;
+    cursor: pointer;
+}
+
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+}
+
+.delete {
+    /*color: #f55a4e !important;*/
+    color: #dc3545 !important;
+    cursor: pointer;
+}
+
+.showAddModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showInfoModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.showEditModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.multiselect__content-wrapper {
+    position: fixed !important;
+    z-index: 2000 !important;
+    max-width: 31% !important;
+}

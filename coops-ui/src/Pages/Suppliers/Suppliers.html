@@ -1,0 +1,701 @@
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6 row">
+        <h1 class="m-0">{{ $t('suppliers.title') }}</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item">
+            <router-link to="/platform">Dashboard</router-link>
+          </li>
+          <li class="breadcrumb-item active">{{ $t('suppliers.title') }}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-outline1 card-primary1">
+          <div class="card-header">
+            <h3 class="card-title">{{ $t('suppliers.allSuppliers') }}</h3>
+
+            <div class="card-tools">
+              <app-button
+                v-if="canAdd"
+                @click="showAddModal()"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+                style="width: 90px"
+                >{{ $t('common.addNew') }}
+              </app-button>
+              <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px"
+                icon="fa-search"
+                icon_size="fa-sm"
+                >{{ $t('common.search') }}
+              </app-button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <!--              <div v-if="isLoadingAll && !firstTimeLoaded" class="text-center mt-5 mb-5">-->
+            <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+            <table
+              v-if="!isLoadingAll && suppliersPaginatedData"
+              class="
+                table table-striped table-hover1
+                datatable
+                table-borderless
+              "
+            >
+              <thead>
+                <tr>
+                  <th style="width: 10px">#</th>
+                  <th>{{ $t('suppliers.supplierName') }}</th>
+                  <th>{{ $t('suppliers.businessNumber') }}</th>
+                  <th style="width: 140px">{{ $t('common.more') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, index) in suppliersPaginatedData.data"
+                  :key="index"
+                >
+                  <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.bussines_no }}</td>
+                  <td class="more_actions">
+                    <img
+                      v-if="canShow"
+                      @click="showInfoModal(item.id)"
+                      class="svg_icon info"
+                      src="/img/info.svg"
+                    />
+                    <img
+                      v-if="canEdit"
+                      @click="showEditModal(item.id)"
+                      class="svg_icon edit"
+                      src="/img/edit1.svg"
+                    />
+                    <img
+                      v-if="canDelete"
+                      @click="showDeleteModal(item.id)"
+                      class="svg_icon delete"
+                      src="/img/delete.svg"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div
+              v-if="!isLoadingAll && suppliersPaginatedData !== null"
+              class="vertical-center mt-2 mb-2 ml-3"
+            >
+              <v-pagination
+                v-model="query.page"
+                :pages="suppliersPaginatedData.pagination.total_pages"
+                :range-size="2"
+                active-color="#DCEDFF"
+                @update:modelValue="getResults"
+              />
+            </div>
+            <div v-if="!canShowAll">
+              <p class="text-black text-center m-5">
+                You do not have the required authorization.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<teleport to="body">
+  <div
+    @click="closeModal"
+    class="modal fade"
+    :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"
+    id="modal-add"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">
+            {{ this.appTitle }} • {{ this.appDescription }}
+          </h4>
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </app-button>
+        </div>
+        <div class="modal-body p-0" style="max-height: calc(100vh - 200px); overflow-y: auto">
+          <table
+            v-if="!isLoading && newSupplier"
+            id="printTable"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <thead>
+              <tr>
+                <th>{{ $t('common.col') }}</th>
+                <th>{{ $t('common.description') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ $t('suppliers.form.name') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name') }"
+                    name="name"
+                    :placeholder="$t('suppliers.form.namePlaceholder')"
+                    @input="addSupplierInputAction"
+                    :value="newSupplier.name"
+                    aria-describedby="add-name-error"
+                    ref="name"
+                    required
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'name')"
+                    id="add-name-error"
+                    class="error invalid-feedback"
+                    >{{ errors['name'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.businessNumber') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'bussines_no') }"
+                    name="bussines_no"
+                    :placeholder="$t('suppliers.form.businessNumberPlaceholder')"
+                    @input="addSupplierInputAction"
+                    :value="newSupplier.bussines_no"
+                    aria-describedby="add-bussines_no-error"
+                    ref="bussines_no"
+                    required
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <small class="form-text text-info d-block">
+                    <i class="fas fa-info-circle"></i> {{ $t('suppliers.arbkHint') }}
+                  </small>
+                  <small v-if="arbkStatus === 'loading'" class="text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> {{ $t('suppliers.arbkLooking') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'found'" class="text-success">
+                    <i class="fas fa-check-circle"></i> {{ $t('suppliers.arbkFound') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'not-found'" class="text-warning">
+                    <i class="fas fa-exclamation-circle"></i> {{ $t('suppliers.arbkNotFound') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'error'" class="text-danger">
+                    <i class="fas fa-times-circle"></i> {{ $t('suppliers.arbkError') }}
+                  </small>
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'bussines_no')"
+                    id="add-bussines_no-error"
+                    class="error invalid-feedback"
+                    >{{ errors['bussines_no'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.noContractNeeded') }}</td>
+                <td>
+                  <div class="custom-control custom-checkbox">
+                    <input
+                      type="checkbox"
+                      class="custom-control-input"
+                      id="add-no-contract-needed"
+                      name="no_contract_needed"
+                      :checked="newSupplier.no_contract_needed"
+                      @change="onNoContractNeededChange($event, 'add')"
+                    />
+                    <label class="custom-control-label" for="add-no-contract-needed">
+                      {{ $t('suppliers.form.noContractNeededHelp') }}
+                    </label>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.companyDetails') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.address') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="address" :placeholder="$t('suppliers.form.addressPlaceholder')" @input="addSupplierInputAction" :value="newSupplier.address" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.city') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="city" :placeholder="$t('suppliers.form.cityPlaceholder')" @input="addSupplierInputAction" :value="newSupplier.city" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.country') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="country" :placeholder="$t('suppliers.form.countryPlaceholder')" @input="addSupplierInputAction" :value="newSupplier.country" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.phone') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="phone" :placeholder="$t('suppliers.form.phonePlaceholder')" @input="addSupplierInputAction" :value="newSupplier.phone" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.email') }}</td>
+                <td>
+                  <input type="email" class="form-control" :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email') }" name="email" :placeholder="$t('suppliers.form.emailPlaceholder')" @input="addSupplierInputAction" :value="newSupplier.email" @keyup.enter="onSubmitAdd" />
+                  <span v-if="checkIfFieldHasErrors(errors, 'email')" class="error invalid-feedback">{{ errors['email'][0] }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.website') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="website" :placeholder="$t('suppliers.form.websitePlaceholder')" @input="addSupplierInputAction" :value="newSupplier.website" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.contactPerson') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactName') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_name" :placeholder="$t('suppliers.form.contactNamePlaceholder')" @input="addSupplierInputAction" :value="newSupplier.contact_name" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactSurname') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_surname" :placeholder="$t('suppliers.form.contactSurnamePlaceholder')" @input="addSupplierInputAction" :value="newSupplier.contact_surname" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactEmail') }}</td>
+                <td>
+                  <input type="email" class="form-control" :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contact_email') }" name="contact_email" :placeholder="$t('suppliers.form.contactEmailPlaceholder')" @input="addSupplierInputAction" :value="newSupplier.contact_email" @keyup.enter="onSubmitAdd" />
+                  <span v-if="checkIfFieldHasErrors(errors, 'contact_email')" class="error invalid-feedback">{{ errors['contact_email'][0] }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactPhone') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_phone" :placeholder="$t('suppliers.form.contactPhonePlaceholder')" @input="addSupplierInputAction" :value="newSupplier.contact_phone" @keyup.enter="onSubmitAdd" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <app-button
+            v-if="!isCreating"
+            @click="onSubmitAdd"
+            type="button"
+            class="btn-primary"
+            >{{ $t('common.save') }}
+          </app-button>
+          <app-button
+            v-if="isCreating"
+            class="btn-primary"
+            type="button"
+            disabled
+          >
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            {{ $t('common.saving') }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    v-if="supplier"
+    @click="closeModal"
+    class="modal fade"
+    :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }"
+    id="modal-info"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">
+            {{ this.appTitle }} • {{ this.appDescription }}
+          </h4>
+          <button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body p-0" style="max-height: calc(100vh - 200px); overflow-y: auto">
+          <table
+            v-if="!isLoading"
+            id="printTable"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <thead>
+              <tr>
+                <th>{{ $t('common.col') }}</th>
+                <th>{{ $t('common.description') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ $t('common.id') }}</td>
+                <td>{{ supplier.id }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.name') }}</td>
+                <td>{{ supplier.name }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.businessNumber') }}</td>
+                <td>{{ supplier.bussines_no }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.noContractNeeded') }}</td>
+                <td>
+                  <span v-if="supplier.no_contract_needed" class="badge badge-success">{{ $t('common.yes') }}</span>
+                  <span v-else class="badge badge-secondary">{{ $t('common.no') }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.companyDetails') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.address') }}</td>
+                <td>{{ supplier.address }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.city') }}</td>
+                <td>{{ supplier.city }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.country') }}</td>
+                <td>{{ supplier.country }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.phone') }}</td>
+                <td>{{ supplier.phone }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.email') }}</td>
+                <td>{{ supplier.email }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.website') }}</td>
+                <td>{{ supplier.website }}</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.contactPerson') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactName') }}</td>
+                <td>{{ supplier.contact_name }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactSurname') }}</td>
+                <td>{{ supplier.contact_surname }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactEmail') }}</td>
+                <td>{{ supplier.contact_email }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactPhone') }}</td>
+                <td>{{ supplier.contact_phone }}</td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('common.createdAt') }}</td>
+                <td>{{ new Date(supplier.created_at).toLocaleString() }}</td>
+              </tr>
+              <tr>
+                <td>{{ $t('common.lastModifiedAt') }}</td>
+                <td>{{ new Date(supplier.updated_at).toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <app-button @click="closeModal" type="button" class="btn-default"
+            >{{ $t('common.print') }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    v-if="supplier"
+    @click="closeModal"
+    class="modal fade"
+    :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }"
+    id="modal-edit"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">
+            {{ this.appTitle }} • {{ this.appDescription }}
+          </h4>
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </app-button>
+        </div>
+        <div class="modal-body p-0" style="max-height: calc(100vh - 200px); overflow-y: auto">
+          <table
+            v-if="!isLoading"
+            id="printTable"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <thead>
+              <tr>
+                <th>{{ $t('common.col') }}</th>
+                <th>{{ $t('common.description') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ $t('common.id') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="id"
+                    :value="supplier.id"
+                    readonly
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.name') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name') }"
+                    name="name"
+                    :value="supplier.name"
+                    @input="updateSupplierInputAction"
+                    aria-describedby="name-error"
+                    required
+                    @keyup.enter="onSubmitEdit"
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'name')"
+                    id="name-error"
+                    class="error invalid-feedback"
+                    >{{ errors['name'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.businessNumber') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'bussines_no') }"
+                    name="bussines_no"
+                    :value="supplier.bussines_no"
+                    @input="updateSupplierInputAction"
+                    aria-describedby="bussines_no-error"
+                    required
+                    @keyup.enter="onSubmitEdit"
+                  />
+                  <small class="form-text text-info d-block">
+                    <i class="fas fa-info-circle"></i> {{ $t('suppliers.arbkHint') }}
+                  </small>
+                  <small v-if="arbkStatus === 'loading'" class="text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> {{ $t('suppliers.arbkLooking') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'found'" class="text-success">
+                    <i class="fas fa-check-circle"></i> {{ $t('suppliers.arbkFound') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'not-found'" class="text-warning">
+                    <i class="fas fa-exclamation-circle"></i> {{ $t('suppliers.arbkNotFound') }}
+                  </small>
+                  <small v-else-if="arbkStatus === 'error'" class="text-danger">
+                    <i class="fas fa-times-circle"></i> {{ $t('suppliers.arbkError') }}
+                  </small>
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'bussines_no')"
+                    id="bussines_no-error"
+                    class="error invalid-feedback"
+                    >{{ errors['bussines_no'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.noContractNeeded') }}</td>
+                <td>
+                  <div class="custom-control custom-checkbox">
+                    <input
+                      type="checkbox"
+                      class="custom-control-input"
+                      id="edit-no-contract-needed"
+                      name="no_contract_needed"
+                      :checked="supplier.no_contract_needed"
+                      @change="onNoContractNeededChange($event, 'edit')"
+                    />
+                    <label class="custom-control-label" for="edit-no-contract-needed">
+                      {{ $t('suppliers.form.noContractNeededHelp') }}
+                    </label>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.companyDetails') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.address') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="address" :placeholder="$t('suppliers.form.addressPlaceholder')" @input="updateSupplierInputAction" :value="supplier.address" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.city') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="city" :placeholder="$t('suppliers.form.cityPlaceholder')" @input="updateSupplierInputAction" :value="supplier.city" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.country') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="country" :placeholder="$t('suppliers.form.countryPlaceholder')" @input="updateSupplierInputAction" :value="supplier.country" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.phone') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="phone" :placeholder="$t('suppliers.form.phonePlaceholder')" @input="updateSupplierInputAction" :value="supplier.phone" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.email') }}</td>
+                <td>
+                  <input type="email" class="form-control" :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email') }" name="email" :placeholder="$t('suppliers.form.emailPlaceholder')" @input="updateSupplierInputAction" :value="supplier.email" @keyup.enter="onSubmitEdit" />
+                  <span v-if="checkIfFieldHasErrors(errors, 'email')" class="error invalid-feedback">{{ errors['email'][0] }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.website') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="website" :placeholder="$t('suppliers.form.websitePlaceholder')" @input="updateSupplierInputAction" :value="supplier.website" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" class="bg-light"><strong>{{ $t('suppliers.form.contactPerson') }}</strong></td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactName') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_name" :placeholder="$t('suppliers.form.contactNamePlaceholder')" @input="updateSupplierInputAction" :value="supplier.contact_name" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactSurname') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_surname" :placeholder="$t('suppliers.form.contactSurnamePlaceholder')" @input="updateSupplierInputAction" :value="supplier.contact_surname" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactEmail') }}</td>
+                <td>
+                  <input type="email" class="form-control" :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contact_email') }" name="contact_email" :placeholder="$t('suppliers.form.contactEmailPlaceholder')" @input="updateSupplierInputAction" :value="supplier.contact_email" @keyup.enter="onSubmitEdit" />
+                  <span v-if="checkIfFieldHasErrors(errors, 'contact_email')" class="error invalid-feedback">{{ errors['contact_email'][0] }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('suppliers.form.contactPhone') }}</td>
+                <td>
+                  <input type="text" class="form-control" name="contact_phone" :placeholder="$t('suppliers.form.contactPhonePlaceholder')" @input="updateSupplierInputAction" :value="supplier.contact_phone" @keyup.enter="onSubmitEdit" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <app-button
+            v-if="!isUpdating"
+            @click="onSubmitEdit"
+            type="button"
+            class="btn-primary"
+            >{{ $t('common.save') }}
+          </app-button>
+          <app-button
+            v-if="isUpdating"
+            class="btn-primary"
+            type="button"
+            disabled
+          >
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            {{ $t('common.saving') }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</teleport>

@@ -1,0 +1,163 @@
+<content-header>
+  <template #title>
+    <h1 class="m-0">{{ $t('appRoles.title') }}</h1>
+  </template>
+  <template #breadcrumb>
+    <breadcrumb-item>
+      <router-link to="/platform">{{ $t('sidebar.dashboard') }}</router-link>
+    </breadcrumb-item>
+    <breadcrumb-item :active="true">{{ $t('appRoles.title') }}</breadcrumb-item>
+  </template>
+</content-header>
+
+<div class="content-wrapper">
+  <section class="content">
+    <div class="container-fluid">
+
+      <!-- App tabs -->
+      <div class="approles-app-tabs mb-3">
+        <button
+          v-for="app in apps"
+          :key="app.id"
+          class="approles-app-tab"
+          :class="{ active: selectedApp && selectedApp.id === app.id }"
+          :style="selectedApp && selectedApp.id === app.id ? { borderBottomColor: app.color, color: app.color } : {}"
+          @click="selectApp(app)"
+        >
+          <i :class="app.icon + ' mr-1'"></i>
+          {{ app.name }}
+        </button>
+      </div>
+
+      <!-- Selected app panel -->
+      <div v-if="selectedApp" class="card card-outline" :style="{ borderTopColor: selectedApp.color }">
+        <div class="card-header" :style="{ borderBottomColor: selectedApp.color + '33' }">
+          <h3 class="card-title d-flex align-items-center gap-2">
+            <i :class="selectedApp.icon" :style="{ color: selectedApp.color }"></i>
+            <span class="ml-2">{{ selectedApp.name }}</span>
+            <span class="badge badge-secondary ml-2">{{ assignments.length }} {{ $t('appRoles.assignments') }}</span>
+          </h3>
+          <div class="card-tools">
+            <button class="btn btn-sm btn-primary" @click="showForm = !showForm">
+              <i class="fas fa-plus mr-1"></i>{{ $t('appRoles.addAssignment') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Add assignment form -->
+        <div v-if="showForm" class="card-body border-bottom approles-form-area">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group mb-2">
+                <label class="form-label small font-weight-bold">{{ $t('appRoles.user') }} *</label>
+                <select class="form-control form-control-sm" v-model="form.user_id">
+                  <option value="">{{ $t('appRoles.selectUser') }}</option>
+                  <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-2">
+                <label class="form-label small font-weight-bold">{{ $t('appRoles.role') }} *</label>
+                <div class="approles-role-checkboxes">
+                  <div v-for="role in roles" :key="role.id" class="approles-role-check">
+                    <input
+                      type="checkbox"
+                      :id="'role-' + role.id"
+                      :value="role.id"
+                      v-model="form.role_ids"
+                    />
+                    <label :for="'role-' + role.id">{{ role.name }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-2">
+                <label class="form-label small font-weight-bold">{{ $t('appRoles.department') }}</label>
+                <select class="form-control form-control-sm" v-model="form.department_id">
+                  <option value="">{{ $t('appRoles.noDepartment') }}</option>
+                  <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-1">
+            <button class="btn btn-sm btn-default mr-2" @click="showForm = false; resetForm()">
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              class="btn btn-sm btn-primary"
+              :disabled="saving || !form.user_id || !form.role_ids.length"
+              @click="onAddAssignment"
+            >
+              <span v-if="saving"><i class="fas fa-spinner fa-spin mr-1"></i></span>
+              {{ $t('appRoles.assign') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Assignments table -->
+        <div class="card-body p-0">
+          <div v-if="loadingAssignments" class="text-center p-4">
+            <i class="fas fa-spinner fa-spin fa-lg text-muted"></i>
+          </div>
+          <div v-else-if="assignments.length === 0" class="text-center text-muted p-4">
+            {{ $t('appRoles.noAssignments') }}
+          </div>
+          <table v-else class="table table-hover table-borderless mb-0 approles-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ $t('appRoles.user') }}</th>
+                <th>{{ $t('appRoles.role') }}</th>
+                <th>{{ $t('appRoles.department') }}</th>
+                <th>{{ $t('appRoles.assignedBy') }}</th>
+                <th>{{ $t('common.createdAt') }}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(a, idx) in assignments" :key="a.id">
+                <td class="text-muted">{{ idx + 1 }}</td>
+                <td>
+                  <span class="approles-user-pill">
+                    <i class="fas fa-user-circle mr-1 text-muted"></i>
+                    {{ a.user ? a.user.name : '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge approles-role-badge" :style="{ background: selectedApp.color + '22', color: selectedApp.color }">
+                    {{ a.role ? a.role.name : '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span v-if="a.department" class="badge badge-light">{{ a.department.name }}</span>
+                  <span v-else class="text-muted small">—</span>
+                </td>
+                <td class="text-muted small">{{ a.assigned_by ? a.assigned_by.name : '—' }}</td>
+                <td class="text-muted small">{{ formatDate(a.created_at) }}</td>
+                <td>
+                  <button
+                    class="btn btn-xs btn-outline-danger"
+                    @click="onRemoveAssignment(a)"
+                    title="Remove"
+                  >
+                    <i class="fas fa-times"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- No app selected -->
+      <div v-else class="card card-body text-center text-muted py-5">
+        <i class="fas fa-th-large fa-2x mb-2"></i>
+        <p class="mb-0">{{ $t('appRoles.selectAppHint') }}</p>
+      </div>
+
+    </div>
+  </section>
+</div>

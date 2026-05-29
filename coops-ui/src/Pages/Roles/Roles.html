@@ -1,0 +1,323 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('roles.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                {{ $t('sidebar.dashboard') }}
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('roles.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('roles.allRoles') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px;"
+                icon="fa-search"
+                icon_size="fa-sm"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table
+                v-if="!isLoadingAll && rolesPaginatedData"
+                class="table table-striped table-hover1 datatable table-borderless"
+        >
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('common.name') }}</th>
+                <th>{{ $t('common.description') }}</th>
+<!--                <th>Department</th>-->
+                <th style="width: 100px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in rolesPaginatedData.data" :key="index">
+                <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.description }}</td>
+<!--                <td>-->
+<!--                    <span v-if="item.departments" class="badge badge-info">-->
+<!--                      {{ checkRoleDepartments(item.departments.length) }}-->
+<!--                    </span>-->
+<!--                </td>-->
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(item.id)"
+                            class="svg_icon info"
+                            src="/img/info.svg"
+                    />
+                    <img
+                            v-if="canEdit"
+                            @click="showEditModal(item.id)"
+                            class="svg_icon edit"
+                            src="/img/edit1.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div v-if="!isLoadingAll && rolesPaginatedData !== null" class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="rolesPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults"
+            />
+        </div>
+        <div v-if="!canShowAll">
+            <p class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <div v-if="role" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>Col</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('common.id') }}</td>
+                            <td>{{ role.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.name') }}</td>
+                            <td>{{ role.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.description') }}</td>
+                            <td>{{ role.description }}</td>
+                        </tr>
+                        <tr>
+                            <td>Departments:</td>
+                            <td v-if="role.departments">
+                  <span v-for="dep in role.departments" :key="dep.id" class="badge badge-info mr-1">
+                    {{ dep.name }}
+                  </span>
+                                <span v-if="role.departments.length == 0" class="badge badge-info mr-1">
+                    {{ $t('roles.noDepartment') }}
+                  </span>
+                            </td>
+                        </tr>
+<!--                        <tr v-if="role.permissions">-->
+<!--                            <td>Permissions:</td>-->
+<!--                            <td v-if="role.permissions.length >= 1">-->
+<!--                                <span-->
+<!--                                        v-for="permission in role.permissions"-->
+<!--                                        :key="permission.id"-->
+<!--                                        class="badge badge-info mr-1">-->
+<!--                      {{ permission.name }}-->
+<!--                    </span>-->
+<!--                            </td>-->
+<!--                            <td v-else>No permissions</td>-->
+<!--                        </tr>-->
+                        <tr>
+                            <td>{{ $t('common.createdAt') }}</td>
+                            <td>{{ new Date(role.created_at).toLocaleString() }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.lastModifiedAt') }}</td>
+                            <td>{{ new Date(role.updated_at).toLocaleString() }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                    >{{ $t('common.print') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="role" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }" id="modal-edit">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="close"
+                                data-dismiss="modal"
+                                aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>Col</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('common.id') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        name="id"
+                                        :value="role.id"
+                                        readonly
+                                >
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('roles.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isUpdating) }"
+                                        name="name"
+                                        :value="role.name"
+                                        @input="updateRoleInputAction"
+                                        aria-describedby="name-error"
+                                        readonly
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'name', this.isUpdating)"
+                                        id="name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('roles.form.description') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'description', this.isUpdating) }"
+                                        name="description"
+                                        :value="role.description"
+                                        @input="updateRoleInputAction"
+                                        aria-describedby="description-update-error"
+
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'description', this.isUpdating)"
+                                        id="description-update-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['description'][0] }}</span>
+                            </td>
+                        </tr>
+<!--                        <tr>-->
+<!--                            <td>Departments: *</td>-->
+<!--                            <td>-->
+<!--                                <VueMultiselect-->
+<!--                                        v-model="selectedDepartments"-->
+<!--                                        :options="departmentList"-->
+<!--                                        :multiple="true"-->
+<!--                                        :taggable="true"-->
+<!--                                        tag-placeholder="Select a department"-->
+<!--                                        placeholder="Type to search or add a department"-->
+<!--                                        label="name"-->
+<!--                                        track-by="id"-->
+<!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'departments', this.isUpdating) }"-->
+<!--                                        aria-describedby="departments-error"-->
+<!--                                />-->
+<!--                                <span-->
+<!--                                        v-if="checkIfFieldHasErrors(errors, 'departments', this.isUpdating)"-->
+<!--                                        id="departments-update-error"-->
+<!--                                        class="error invalid-feedback"-->
+<!--                                >{{ errors['departments'][0] }}</span>-->
+<!--                            </td>-->
+<!--                        </tr>-->
+                        <tr>
+                            <td>Permissions:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectedPermissions"
+                                        :options="permissionList"
+                                        :multiple="true"
+                                        :taggable="true"
+                                        tag-placeholder="Select permissions"
+                                        placeholder="Type to search or add a permission"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'permissions', this.isUpdating) }"
+                                        aria-describedby="permissions-error"
+                                        :fixed="true"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'permissions', this.isUpdating)"
+                                        id="permissions-update-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['permissions'][0] }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isUpdating"
+                                @click="onSubmitEdit"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isUpdating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>

@@ -1,0 +1,38 @@
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-7">
+                <h1 class="m-0" v-if="user">{{ $t('dashboard.welcome') }} {{ user.first_name }}</h1>
+                <h1 class="m-0" v-else>{{ $t('appHub.title') }}</h1>
+                <p style="color:#64748b;font-size:0.9rem;margin-top:4px;">{{ $t('appHub.subtitle') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div v-if="loading" class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        </div>
+        <div v-else class="row">
+            <div class="col-xl-4 col-md-6 mb-4" v-for="app in apps" :key="app.key">
+                <router-link :to="app.path" class="dash-app-card" :style="{ '--app-color': app.color }">
+                    <div class="dash-app-card-header">
+                        <div class="dash-app-icon">
+                            <i :class="app.icon"></i>
+                        </div>
+                        <span class="badge" :class="app.live ? 'badge-success' : 'badge-secondary'">
+                            {{ app.live ? $t('appHub.statusLive') : $t('appHub.statusPlanned') }}
+                        </span>
+                    </div>
+                    <h3>{{ app.name }}</h3>
+                    <p>{{ app.description }}</p>
+                    <span class="dash-app-open">
+                        {{ $t('appHub.openApp') }} <i class="fas fa-arrow-right ml-1"></i>
+                    </span>
+                </router-link>
+            </div>
+        </div>
+    </div>
+</section>

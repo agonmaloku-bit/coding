@@ -1,0 +1,29 @@
+<app-dropdown class="user-menu" size="md">
+    <template #dropdown-button>
+<!--        <img src="/img/avatar.jpg" class="user-image img-circle elevation-2" alt="User Image">-->
+        <div class="user-image img-circle elevation-2 user-image-pmk"></div>
+        <!--      <span class="d-none d-md-inline">Admin  Admin</span>-->
+    </template>
+    <template #dropdown-menu>
+        <li class="user-header bg-primary">
+<!--            <img src="/img/avatar.jpg" class="img-circle elevation-2" alt="User Image" />-->
+            <div class="img-circle elevation-2 user-image-pmk">
+
+            </div>
+
+            <p>
+                <span>{{ user.first_name + ' ' + user.last_name }}</span>
+                <small>
+<!--                    <span>Member since</span>-->
+<!--                    <span>Nov. 2012</span>-->
+                    <span>{{ user.email }}</span>
+                </small>
+            </p>
+        </li>
+        <li class="user-footer">
+<!--            <router-link to="/profile" class="btn btn-default btn-flat" @click="isDropdownOpened = false;">Profile</router-link>-->
+            <a href="/profile" class="btn btn-default btn-flat">{{ $t('header.profile') }}</a>
+            <button @click.prevent="logOut" class="btn btn-default btn-flat float-right">{{ $t('header.logout') }}</button>
+        </li>
+    </template>
+</app-dropdown>

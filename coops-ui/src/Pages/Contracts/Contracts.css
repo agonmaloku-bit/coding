@@ -1,0 +1,224 @@
+.info {
+    /*color: #138496 !important;*/
+    color: #159cb1 !important;
+    cursor: pointer;
+}
+
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+}
+
+.delete {
+    /*color: #f55a4e !important;*/
+    color: #dc3545 !important;
+    cursor: pointer;
+}
+
+.success {
+    color: #28a745 !important;
+    cursor: pointer;
+}
+
+.showModal {
+    display: block;
+    padding-right: 15px;
+}
+
+.search {
+    margin-left: 6%;
+    margin-right: 6%;
+}
+
+.form-group-custom {
+    margin-bottom: 8px;
+}
+
+@media print
+{
+    .table td, .table th {
+         background-color: unset !important;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 2: Modern Contracts list — view toggle, cards grid, kanban    */
+/* ------------------------------------------------------------------ */
+.cw-view-toggle {
+    display: inline-flex;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 2px;
+    overflow: hidden;
+}
+.cw-view-btn {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+}
+.cw-view-btn:hover { color: #0f172a; }
+.cw-view-btn.active {
+    background: #fff;
+    color: #1d4ed8;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.cw-view-btn i { font-size: 14px; }
+
+.cw-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    padding: 12px 4px 4px;
+}
+
+.cw-kanban {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 12px 4px 4px;
+    overflow-x: auto;
+}
+@media (max-width: 1280px) {
+    .cw-kanban { grid-template-columns: repeat(5, 260px); }
+}
+.cw-kanban__col {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: calc(100vh - 320px);
+}
+.cw-kanban__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    border-radius: 12px 12px 0 0;
+    z-index: 1;
+}
+.cw-kanban__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.cw-kanban__title i { font-size: 11px; color: #64748b; }
+.cw-kanban__col--request   .cw-kanban__title i { color: #d97706; }
+.cw-kanban__col--progress  .cw-kanban__title i { color: #2563eb; }
+.cw-kanban__col--approved  .cw-kanban__title i { color: #059669; }
+.cw-kanban__col--canceled  .cw-kanban__title i { color: #dc2626; }
+.cw-kanban__col--archived  .cw-kanban__title i { color: #6b7280; }
+.cw-kanban__count {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    min-width: 22px;
+    text-align: center;
+}
+.cw-kanban__body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+}
+.cw-kanban__empty {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 18px 8px;
+    font-style: italic;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Modernised toolbar action buttons (Request / Export / Search)       */
+/* ------------------------------------------------------------------ */
+.cw-btn.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease,
+                border-color 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+    box-shadow: none;
+}
+.cw-btn.btn:hover { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
+.cw-btn.btn:focus { box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18); outline: none; }
+.cw-btn.btn i { font-size: 13px; }
+.cw-btn.btn i.pr-2 { padding-right: 6px !important; }
+
+.cw-btn--primary.btn {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+}
+.cw-btn--primary.btn:hover {
+    background: #1e40af;
+    border-color: #1e40af;
+    color: #fff;
+}
+
+.cw-btn--excel.btn {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+.cw-btn--excel.btn:hover {
+    background: #047857;
+    border-color: #047857;
+    color: #fff;
+}
+
+.cw-btn--search.btn {
+    background: #fff;
+    border-color: #cbd5e1;
+    color: #64748b;
+    min-width: 240px;
+    justify-content: flex-start;
+}
+.cw-btn--search.btn:hover {
+    border-color: #94a3b8;
+    color: #334155;
+}
+.cw-btn--search.btn.active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+}
+.cw-btn--search.btn.active:hover {
+    background: #1e40af;
+    border-color: #1e40af;
+    color: #fff;
+}

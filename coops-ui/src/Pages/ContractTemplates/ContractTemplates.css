@@ -1,0 +1,60 @@
+.info {
+    color: #159cb1 !important;
+    cursor: pointer;
+}
+.edit {
+    color: #007bff !important;
+    cursor: pointer;
+}
+.delete {
+    color: #dc3545 !important;
+    cursor: pointer;
+}
+.showAddModal {
+    display: block; padding-right: 15px;
+}
+.showInfoModal {
+    display: block; padding-right: 15px;
+}
+.showEditModal {
+    display: block; padding-right: 15px;
+}
+.template-editor {
+    min-height: 300px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.variable-btn {
+    margin: 2px;
+    font-size: 12px;
+}
+.variable-groups .col-md-4 {
+    padding: 0 8px;
+}
+.variable-group-title {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #6c757d;
+    border-bottom: 1px solid #dee2e6;
+    padding: 4px 2px;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+.variable-groups .variable-btn {
+    margin: 2px 0;
+}
+.template-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 200px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

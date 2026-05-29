@@ -1,0 +1,81 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">AI Settings</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">Dashboard</router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">AI Settings</breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>OpenAI Configuration</template>
+    <template #cardBody>
+        <div v-if="loading" class="ai-loading">Loading…</div>
+
+        <form v-else class="ai-form" @submit.prevent="save">
+            <div class="ai-row">
+                <label class="ai-toggle">
+                    <input type="checkbox" v-model="form.enabled" />
+                    <span>Enable AI features</span>
+                </label>
+                <p class="ai-hint">When disabled, AI buttons throughout the app stay hidden and no calls are made to OpenAI.</p>
+            </div>
+
+            <div class="ai-row">
+                <label for="ai_base_url">API base URL</label>
+                <input id="ai_base_url" type="url" class="form-control" v-model="form.base_url"
+                       placeholder="https://api.openai.com/v1" />
+                <p class="ai-hint">Use the default unless you're routing through Azure OpenAI or a custom proxy.</p>
+            </div>
+
+            <div class="ai-row">
+                <label for="ai_model">Model</label>
+                <input id="ai_model" type="text" class="form-control" v-model="form.model"
+                       placeholder="gpt-4o-mini" />
+                <p class="ai-hint">
+                    Recommended: <code>gpt-4o-mini</code> (cheap, vision-capable). For tougher invoices try <code>gpt-4o</code>.
+                </p>
+            </div>
+
+            <div class="ai-row">
+                <label for="ai_api_key">API Key</label>
+                <input id="ai_api_key" type="password" class="form-control" v-model="form.api_key"
+                       :placeholder="api_key_set ? `A key is already saved (${api_key_hint}). Leave blank to keep it.` : 'sk-…'" />
+                <p class="ai-hint">
+                    Stored encrypted in the database. Get a key at
+                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>.
+                </p>
+            </div>
+
+            <div class="ai-row">
+                <label class="ai-toggle">
+                    <input type="checkbox" v-model="form.vision_enabled" />
+                    <span>Allow vision (sending invoice images to the model)</span>
+                </label>
+                <p class="ai-hint">Disable if your data residency rules forbid sending document scans to OpenAI.</p>
+            </div>
+
+            <div class="ai-actions">
+                <button type="submit" class="btn btn-primary" :disabled="saving">
+                    <i class="fas fa-save mr-1"></i>
+                    {{ saving ? 'Saving…' : 'Save settings' }}
+                </button>
+                <button type="button" class="btn btn-outline-secondary" :disabled="testing || !api_key_set" @click="test">
+                    <i class="fas fa-vial mr-1"></i>
+                    {{ testing ? 'Testing…' : 'Test connection' }}
+                </button>
+            </div>
+
+            <div v-if="testResult" class="ai-test-result" :class="testResult.ok ? 'ai-test--ok' : 'ai-test--fail'">
+                <i class="fas" :class="testResult.ok ? 'fa-check-circle' : 'fa-exclamation-triangle'"></i>
+                <span>
+                    {{ testResult.ok ? 'Connection successful.' : 'Test failed.' }}
+                    <small v-if="testResult.message"> {{ testResult.message }}</small>
+                </span>
+            </div>
+        </form>
+    </template>
+</page-content>

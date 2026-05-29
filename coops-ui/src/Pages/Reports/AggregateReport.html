@@ -1,0 +1,116 @@
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-7">
+        <h1 class="m-0">{{ $t('reports.' + type + '.title') }}</h1>
+        <p class="rep-subtitle">{{ $t('reports.' + type + '.subtitle') }}</p>
+      </div>
+      <div class="col-sm-5">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item">
+            <router-link to="/platform">{{ $t('sidebar.dashboard') }}</router-link>
+          </li>
+          <li class="breadcrumb-item">{{ $t('sidebar.reports') }}</li>
+          <li class="breadcrumb-item active">{{ $t('reports.' + type + '.title') }}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Filter bar -->
+    <div class="card card-default rep-filter-card">
+      <div class="card-body">
+        <div class="rep-presets">
+          <button v-for="p in presets"
+                  :key="p.value"
+                  type="button"
+                  class="rep-preset-btn"
+                  :class="{ active: preset === p.value }"
+                  @click="setPreset(p.value)">{{ $t('reports.filters.' + p.label) }}</button>
+        </div>
+        <div v-if="preset === 'custom'" class="rep-custom">
+          <div class="rep-field">
+            <label>{{ $t('reports.filters.from') }}</label>
+            <input type="date" v-model="customFrom" class="form-control" />
+          </div>
+          <div class="rep-field">
+            <label>{{ $t('reports.filters.to') }}</label>
+            <input type="date" v-model="customTo" class="form-control" />
+          </div>
+          <button type="button"
+                  class="rep-apply-btn"
+                  :disabled="!customFrom || !customTo"
+                  @click="applyCustom">
+            {{ $t('reports.filters.apply') }}
+          </button>
+        </div>
+        <div v-if="range.from" class="rep-range-info">
+          <i class="far fa-calendar-alt mr-1"></i>
+          {{ range.from }} &rarr; {{ range.to }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary tiles -->
+    <div class="rep-summary">
+      <div class="rep-tile">
+        <div class="rep-tile__label">{{ $t('reports.totalBills') }}</div>
+        <div class="rep-tile__value">{{ totals.bill_count || 0 }}</div>
+      </div>
+      <div class="rep-tile rep-tile--accent">
+        <div class="rep-tile__label">{{ $t('reports.totalValue') }}</div>
+        <div class="rep-tile__value">{{ formatMoney(totals.total_value || 0) }}</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card card-default">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-bar mr-2" style="color:#1d4ed8;"></i>
+          {{ $t('reports.' + type + '.title') }}
+        </h3>
+      </div>
+      <div class="card-body p-0">
+        <div v-if="loading" class="text-center py-5">
+          <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        </div>
+        <div v-else-if="rows.length === 0" class="text-center py-5 text-muted">
+          <i class="fas fa-folder-open fa-3x mb-3"></i>
+          <p>{{ $t('reports.noData') }}</p>
+        </div>
+        <table v-else class="table table-hover mb-0 rep-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">#</th>
+              <th>{{ $t('reports.' + type + '.colName') }}</th>
+              <th style="width:140px; text-align:center;">{{ $t('reports.' + type + '.colCount') }}</th>
+              <th style="width:200px; text-align:right;">{{ $t('reports.' + type + '.colValue') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in rows" :key="row.id || idx">
+              <td>{{ idx + 1 }}</td>
+              <td>{{ row.name }}</td>
+              <td style="text-align:center;">
+                <span class="rep-pill">{{ row.bill_count }}</span>
+              </td>
+              <td style="text-align:right; font-weight:600;">{{ formatMoney(row.total_value) }}</td>
+            </tr>
+          </tbody>
+          <tfoot v-if="rows.length">
+            <tr class="rep-totals-row">
+              <td colspan="2" style="text-align:right; font-weight:600;">{{ $t('reports.totals') }}</td>
+              <td style="text-align:center; font-weight:600;">{{ totals.bill_count }}</td>
+              <td style="text-align:right; font-weight:600;">{{ formatMoney(totals.total_value) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

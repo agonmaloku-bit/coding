@@ -1,0 +1,144 @@
+<div class="coops-login-split">
+
+    <!-- Left branding panel -->
+    <div class="coops-panel-left">
+        <div class="coops-brand">
+            <div class="coops-brand-icon">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <div class="coops-brand-name">Co<span>OPS</span></div>
+            <p class="coops-brand-tagline">Cooperative Operations &amp; Procurement System</p>
+        </div>
+
+        <div class="coops-feature-list">
+            <div class="coops-feature-item">
+                <div class="coops-feature-icon"><i class="fas fa-file-contract"></i></div>
+                <div>
+                    <div class="coops-feature-title">Contract Management</div>
+                    <div class="coops-feature-desc">Draft, track and approve contracts end-to-end</div>
+                </div>
+            </div>
+            <div class="coops-feature-item">
+                <div class="coops-feature-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div>
+                    <div class="coops-feature-title">Bills &amp; Invoices</div>
+                    <div class="coops-feature-desc">Streamlined billing with full approval flows</div>
+                </div>
+            </div>
+            <div class="coops-feature-item">
+                <div class="coops-feature-icon"><i class="fas fa-shopping-cart"></i></div>
+                <div>
+                    <div class="coops-feature-title">Procurement</div>
+                    <div class="coops-feature-desc">Manage procurement and supplier relationships</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="coops-panel-footer">
+            <span>&copy; 2026 CoOPS. All rights reserved.</span>
+        </div>
+    </div>
+
+    <!-- Right form panel -->
+    <div class="coops-panel-right">
+        <div class="coops-form-card">
+
+            <transition name="fade">
+                <div v-if="errorStatus" class="coops-error-banner">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    {{ errorMessage }}
+                </div>
+            </transition>
+
+            <div class="coops-form-header">
+                <h2>Welcome back</h2>
+                <p>{{ $t('login.subtitle') }}</p>
+            </div>
+
+            <form @submit.prevent="handleLogin" method="post">
+                <div v-if="showServerField" class="coops-field">
+                    <label for="loginServer">Server</label>
+                    <div class="input-group">
+                        <input
+                            id="loginServer"
+                            v-model="serverUrl"
+                            type="url"
+                            class="form-control"
+                            placeholder="https://your-server/api/"
+                            autocomplete="url"
+                        >
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-primary" @click="applyServerUrl">Connect</button>
+                        </div>
+                    </div>
+                    <small class="text-muted">Leave the path as <code>/api/</code>. Press Connect to save.</small>
+                </div>
+
+                <div class="coops-field">
+                    <label for="loginEmail">Email address</label>
+                    <div class="input-group">
+                        <input
+                            id="loginEmail"
+                            v-model="email"
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            :placeholder="$t('login.email')"
+                            required
+                            autofocus
+                        >
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coops-field">
+                    <label for="loginPassword">Password</label>
+                    <div class="input-group">
+                        <input
+                            id="loginPassword"
+                            v-model="password"
+                            type="password"
+                            class="form-control"
+                            :placeholder="$t('login.password')"
+                            required
+                        >
+                        <div class="input-group-append">
+                            <div class="input-group-text">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coops-form-options">
+                    <div class="icheck-primary">
+                        <input type="checkbox" id="remember" v-model="remember_me">
+                        <label for="remember">{{ $t('login.rememberMe') }}</label>
+                    </div>
+                    <a href="forgot-password.html" class="coops-forgot-link">{{ $t('login.forgotPassword') }}</a>
+                </div>
+
+                <app-button
+                    class="btn-primary coops-btn-signin"
+                    block="true"
+                    type="submit"
+                    :loading="isLoading"
+                    :flex="true"
+                    :disabled="false"
+                >{{ $t('login.signIn') }}
+                </app-button>
+
+                <div class="coops-server-toggle">
+                    <a href="#" @click.prevent="toggleServerField">
+                        <i class="fas fa-server mr-1"></i>
+                        {{ showServerField ? 'Hide server settings' : 'Change server' }}
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

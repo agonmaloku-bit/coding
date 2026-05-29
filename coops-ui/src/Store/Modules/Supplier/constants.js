@@ -1,0 +1,40 @@
+export const SCOPE = `PMK/Supplier`;
+
+export const SUPPLIER_LIST_GETTER = `${SCOPE}/SUPPLIER_LIST_GETTER`;
+export const SUPPLIERS_PAGINATED_DATA_GETTER = `${SCOPE}/suppliersPaginatedData`;
+export const SUPPLIER_GETTER = `${SCOPE}/supplier`;
+export const NEW_SUPPLIER_GETTER = `${SCOPE}/newSupplier`;
+export const FIRST_TIME_LOADED_GETTER = `${SCOPE}/firstTimeLoaded`;
+export const IS_LOADING_ALL_GETTER = `${SCOPE}/isLoadingAll`;
+export const IS_LOADING_GETTER = `${SCOPE}/isLoading`;
+export const IS_CREATING_GETTER = `${SCOPE}/isCreating`;
+export const CREATED_DATA_GETTER = `${SCOPE}/createdData`;
+export const IS_UPDATING_GETTER = `${SCOPE}/isUpdating`;
+export const UPDATED_DATA_GETTER = `${SCOPE}/updatedData`;
+export const IS_DELETING_GETTER = `${SCOPE}/isDeleting`;
+export const DELETED_DATA_GETTER = `${SCOPE}/deletedData`;
+export const ERRORS_GETTER = `${SCOPE}/errors`;
+
+export const FETCH_ALL_SUPPLIERS_ACTION = `${SCOPE}/fetchAllSuppliers`;
+export const FETCH_DETAIL_SUPPLIER_ACTION = `${SCOPE}/fetchDetailSupplier`;
+export const STORE_SUPPLIER_ACTION = `${SCOPE}/storeSupplier`;
+export const UPDATE_SUPPLIER_ACTION = `${SCOPE}/updateSupplier`;
+export const DELETE_SUPPLIER_ACTION = `${SCOPE}/deleteSupplier`;
+export const ADD_SUPPLIER_INPUT_ACTION = `${SCOPE}/addSupplierInput`;
+export const UPDATE_SUPPLIER_INPUT_ACTION = `${SCOPE}/updateSupplierInput`;
+export const SET_ERRORS_ACTION = `${SCOPE}/setErrors`;
+
+export const SET_SUPPLIERS_MUTATION = `${SCOPE}/setSuppliers`;
+export const SET_SUPPLIERS_PAGINATED_MUTATION = `${SCOPE}/setSuppliersPaginated`;
+export const SET_SUPPLIER_DETAIL_MUTATION = `${SCOPE}/setSupplierDetail`;
+export const SET_SUPPLIER_ARE_LOADING_MUTATION = `${SCOPE}/setSuppliersAreLoading`;
+export const SET_SUPPLIERS_LOADED_MUTATION = `${SCOPE}/setSuppliersLoaded`;
+export const SET_SUPPLIER_IS_LOADING_MUTATION = `${SCOPE}/setSupplierIsLoading`;
+export const SAVE_NEW_SUPPLIERS_MUTATION = `${SCOPE}/saveNewSuppliers`;
+export const SET_SUPPLIER_IS_CREATING_MUTATION = `${SCOPE}/setSupplierIsCreating`;
+export const SAVE_UPDATED_SUPPLIER_MUTATION = `${SCOPE}/saveUpdatedSupplier`;
+export const SET_SUPPLIER_IS_UPDATING_MUTATION = `${SCOPE}/setSupplierIsUpdating`;
+export const SET_SUPPLIER_ADD_INPUT_MUTATION = `${SCOPE}/setSupplierAddInput`;
+export const SET_SUPPLIER_DETAIL_INPUT_MUTATION = `${SCOPE}/setSupplierDetailInput`;
+export const SET_SUPPLIER_IS_DELETING_MUTATION = `${SCOPE}/setSupplierIsDeleting`;
+export const SET_ERRORS_MUTATION = `${SCOPE}/setErrors`;

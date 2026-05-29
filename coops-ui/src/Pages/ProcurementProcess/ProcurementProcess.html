@@ -1,0 +1,299 @@
+<div>
+  <!-- Header -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-7">
+          <h1 class="m-0">{{ $t('procurement.title') }}</h1>
+        </div>
+        <div class="col-sm-5">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item">
+              <router-link to="/platform">Dashboard</router-link>
+            </li>
+            <li class="breadcrumb-item">
+              <router-link to="/platform/apps">{{ $t('appHub.title') }}</router-link>
+            </li>
+            <li class="breadcrumb-item active">{{ $t('procurement.title') }}</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="content">
+    <div class="container-fluid">
+
+      <!-- Status pipeline -->
+      <div class="proc-pipeline mb-4">
+        <div class="proc-stage" v-for="stage in pipeline" :key="stage.status"
+          :class="{ active: filterStatus == stage.status }"
+          @click="filterByStatus(stage.status)">
+          <div class="stage-dot" :style="{ background: stage.color }"></div>
+          <span>{{ stage.label }}</span>
+          <span class="stage-count">{{ statusCount(stage.status) }}</span>
+        </div>
+        <div class="proc-stage" :class="{ active: filterStatus == null }" @click="filterByStatus(null)">
+          <div class="stage-dot" style="background:#64748b"></div>
+          <span>{{ $t('procurement.allRequests') }}</span>
+          <span class="stage-count">{{ items.length }}</span>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+          <input type="text" class="form-control form-control-sm" style="width:220px"
+            v-model="searchText" :placeholder="$t('common.search')"
+            @input="debouncedSearch" />
+          <select class="form-control form-control-sm" style="width:160px" v-model="filterType" @change="loadAll">
+            <option value="">{{ $t('procurement.allTypes') }}</option>
+            <option value="goods">{{ $t('procurement.goods') }}</option>
+            <option value="services">{{ $t('procurement.services') }}</option>
+            <option value="works">{{ $t('procurement.works') }}</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" @click="openCreate">
+          <i class="fas fa-plus mr-1"></i> {{ $t('procurement.newRequest') }}
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-body table-responsive p-0">
+          <div v-if="loading" class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+          </div>
+          <table v-else class="table table-hover">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ $t('procurement.title') }}</th>
+                <th>{{ $t('common.status') }}</th>
+                <th>{{ $t('procurement.type') }}</th>
+                <th>{{ $t('procurement.estimatedValue') }}</th>
+                <th>{{ $t('procurement.department') }}</th>
+                <th>{{ $t('procurement.requestedBy') }}</th>
+                <th>{{ $t('procurement.neededBy') }}</th>
+                <th>{{ $t('common.createdAt') }}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredItems" :key="item.id">
+                <td><small class="text-muted">#{{ item.id }}</small></td>
+                <td><strong>{{ item.title }}</strong></td>
+                <td>
+                  <span class="badge proc-status-badge" :style="statusStyle(item.status)">
+                    {{ item.status_label }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" :class="typeBadgeClass(item.procurement_type)">
+                    {{ item.procurement_type }}
+                  </span>
+                </td>
+                <td>{{ formatValue(item.estimated_value) }}</td>
+                <td>{{ item.department ? item.department.name : '—' }}</td>
+                <td>{{ item.created_by ? item.created_by.first_name + ' ' + item.created_by.last_name : '—' }}</td>
+                <td>{{ item.needed_by || '—' }}</td>
+                <td>{{ formatDate(item.created_at) }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-info btn-sm" @click="openDetail(item)" :title="$t('common.moreInfo')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button v-if="item.status == 1" class="btn btn-warning btn-sm" @click="openEdit(item)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button v-if="item.status == 1" class="btn btn-danger btn-sm" @click="onDelete(item)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="!filteredItems.length">
+                <td colspan="10" class="text-center py-4 text-muted">
+                  <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                  {{ $t('procurement.noRequests') }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer" v-if="pagination && pagination.last_page > 1">
+          <v-pagination v-model="page" :pages="pagination.last_page" :range-size="1"
+            active-color="#f59e0b" @update:modelValue="onPageChange" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== CREATE / EDIT MODAL ====== -->
+  <div class="modal fade" :class="{ show: showForm }" :style="{ display: showForm ? 'block' : 'none' }" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header" style="background:#f59e0b;">
+          <h5 class="modal-title">
+            <i class="fas fa-shopping-cart mr-2"></i>
+            {{ editMode ? $t('procurement.editRequest') : $t('procurement.newRequest') }}
+          </h5>
+          <button type="button" class="close" @click="closeModal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <label class="form-label">{{ $t('procurement.form.title') }} *</label>
+              <input type="text" class="form-control" v-model="form.title" :placeholder="$t('procurement.form.titlePlaceholder')" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{{ $t('procurement.form.type') }} *</label>
+              <select class="form-control" v-model="form.procurement_type">
+                <option value="goods">{{ $t('procurement.goods') }}</option>
+                <option value="services">{{ $t('procurement.services') }}</option>
+                <option value="works">{{ $t('procurement.works') }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <label class="form-label">{{ $t('procurement.form.description') }}</label>
+              <textarea class="form-control" rows="3" v-model="form.description"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{{ $t('procurement.form.justification') }}</label>
+              <textarea class="form-control" rows="3" v-model="form.justification"></textarea>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-4">
+              <label class="form-label">{{ $t('procurement.form.estimatedValue') }}</label>
+              <input type="number" min="0" step="0.01" class="form-control" v-model="form.estimated_value" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{{ $t('procurement.form.department') }} *</label>
+              <select class="form-control" v-model="form.department_id">
+                <option value="" disabled>{{ $t('procurement.form.selectDepartment') }}</option>
+                <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{{ $t('procurement.form.neededBy') }}</label>
+              <input type="date" class="form-control" v-model="form.needed_by" />
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-12">
+              <label class="form-label">{{ $t('procurement.form.notes') }}</label>
+              <input type="text" class="form-control" v-model="form.notes" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeModal">{{ $t('common.close') }}</button>
+          <button class="btn btn-primary" @click="onSave" :disabled="saving">
+            <i class="fas fa-spinner fa-spin mr-1" v-if="saving"></i>
+            {{ saving ? $t('common.saving') : $t('common.save') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== DETAIL / ACTION MODAL ====== -->
+  <div class="modal fade" :class="{ show: showDetail }" :style="{ display: showDetail ? 'block' : 'none' }" tabindex="-1">
+    <div class="modal-dialog modal-lg" v-if="selected">
+      <div class="modal-content">
+        <div class="modal-header proc-detail-header">
+          <h5 class="modal-title">
+            <i class="fas fa-file-alt mr-2"></i>{{ selected.title }}
+          </h5>
+          <button type="button" class="close text-white" @click="closeModal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <!-- Status track -->
+          <div class="proc-status-track mb-4">
+            <div v-for="stage in pipeline" :key="stage.status"
+              class="track-step" :class="trackStepClass(stage.status, selected.status)">
+              <div class="track-dot" :style="{ background: stage.color }"></div>
+              <span>{{ stage.label }}</span>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <dl>
+                <dt>{{ $t('procurement.form.type') }}</dt>
+                <dd><span class="badge" :class="typeBadgeClass(selected.procurement_type)">{{ selected.procurement_type }}</span></dd>
+                <dt>{{ $t('procurement.estimatedValue') }}</dt>
+                <dd>{{ formatValue(selected.estimated_value) }}</dd>
+                <dt>{{ $t('procurement.neededBy') }}</dt>
+                <dd>{{ selected.needed_by || '—' }}</dd>
+                <dt>{{ $t('procurement.requestedBy') }}</dt>
+                <dd>{{ selected.created_by ? selected.created_by.first_name + ' ' + selected.created_by.last_name : '—' }}</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl>
+                <dt>{{ $t('procurement.department') }}</dt>
+                <dd>{{ selected.department ? selected.department.name : '—' }}</dd>
+                <dt>{{ $t('procurement.assignedOfficer') }}</dt>
+                <dd>{{ selected.assigned_officer ? selected.assigned_officer.first_name + ' ' + selected.assigned_officer.last_name : '—' }}</dd>
+                <dt>{{ $t('procurement.approvedBy') }}</dt>
+                <dd>{{ selected.approved_by ? selected.approved_by.first_name + ' ' + selected.approved_by.last_name : '—' }}</dd>
+                <dt>{{ $t('procurement.form.notes') }}</dt>
+                <dd>{{ selected.notes || '—' }}</dd>
+              </dl>
+            </div>
+          </div>
+          <div v-if="selected.description" class="mt-2">
+            <strong>{{ $t('procurement.form.description') }}</strong>
+            <p>{{ selected.description }}</p>
+          </div>
+          <div v-if="selected.justification" class="mt-2">
+            <strong>{{ $t('procurement.form.justification') }}</strong>
+            <p>{{ selected.justification }}</p>
+          </div>
+          <div v-if="selected.rejection_reason" class="alert alert-danger mt-2">
+            <strong>{{ $t('procurement.rejectionReason') }}</strong> {{ selected.rejection_reason }}
+          </div>
+
+          <!-- Advance action options -->
+          <div v-if="canAdvance(selected)" class="mt-3 border-top pt-3">
+            <h6>{{ $t('procurement.nextAction') }}: <strong>{{ nextStatusLabel(selected.status) }}</strong></h6>
+            <div v-if="canAssignOfficer(selected)" class="mb-2">
+              <label>{{ $t('procurement.assignOfficer') }}</label>
+              <select class="form-control" v-model="actionData.assigned_officer">
+                <option value="">{{ $t('procurement.form.selectOfficer') }}</option>
+                <option v-for="u in officers" :key="u.id" :value="u.id">{{ u.first_name }} {{ u.last_name }}</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label>{{ $t('procurement.form.notes') }}</label>
+              <input type="text" class="form-control" v-model="actionData.notes" />
+            </div>
+          </div>
+          <div v-if="canReject(selected)" class="mt-2">
+            <label>{{ $t('procurement.rejectionReason') }}</label>
+            <input type="text" class="form-control" v-model="actionData.reason" :placeholder="$t('procurement.form.rejectionPlaceholder')" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeModal">{{ $t('common.close') }}</button>
+          <button v-if="canReject(selected)" class="btn btn-danger" @click="onReject" :disabled="acting">
+            <i class="fas fa-times mr-1"></i> {{ $t('common.reject') }}
+          </button>
+          <button v-if="canCancel(selected)" class="btn btn-outline-secondary" @click="onCancel">
+            {{ $t('common.cancel') }}
+          </button>
+          <button v-if="canAdvance(selected)" class="btn btn-success" @click="onAdvance" :disabled="acting">
+            <i class="fas fa-arrow-right mr-1"></i> {{ nextStatusLabel(selected.status) }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- backdrop -->
+  <div v-if="showForm || showDetail" class="modal-backdrop fade show" @click="closeModal"></div>
+</div>

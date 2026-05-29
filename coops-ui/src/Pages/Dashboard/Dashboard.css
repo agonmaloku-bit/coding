@@ -1,0 +1,63 @@
+/* Dashboard app cards */
+.dash-app-card {
+  --app-color: #2563eb;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(150deg, #ffffff 0%, #f8fafc 60%, #eef2ff 100%);
+  border: 1px solid #e2e8f0;
+  border-top: 4px solid var(--app-color);
+  border-radius: 14px;
+  padding: 1.1rem 1.2rem;
+  min-height: 200px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.dash-app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.11);
+  text-decoration: none;
+  color: inherit;
+}
+
+.dash-app-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.dash-app-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--app-color);
+  font-size: 1rem;
+}
+
+.dash-app-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.3rem;
+}
+
+.dash-app-card p {
+  font-size: 0.8rem;
+  color: #64748b;
+  flex: 1;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.dash-app-open {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--app-color);
+}

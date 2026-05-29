@@ -1,0 +1,130 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('profile.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                Dashboard
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('profile.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('profile.editProfile') }}
+    </template>
+    <template #cardTools>
+
+    </template>
+    <template #cardBody>
+        <div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="first_name">{{ $t('profile.firstName') }}</label>
+                    <input
+                            type="text"
+                            name="first_name"
+                            class="form-control"
+                            id="first_name"
+                            :placeholder="$t('register.firstName')"
+                            :value="user.first_name"
+                            @input="first_name = $event.target.value"
+                            @keyup.enter="onSubmit"
+                            required
+                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'first_name') }"
+                    >
+                    <span
+                            v-if="checkIfFieldHasErrors(errors, 'first_name')"
+                            id="first_name-error"
+                            class="error invalid-feedback"
+                    >{{ errors['first_name'][0] }}</span>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">{{ $t('profile.lastName') }}</label>
+                    <input
+                            type="text"
+                            name="last_name"
+                            class="form-control"
+                            id="last_name"
+                            :placeholder="$t('register.lastName')"
+                            :value="user.last_name"
+                            @input="last_name = $event.target.value"
+                            @keyup.enter="onSubmit"
+                            required
+                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'last_name') }"
+                    >
+                    <span
+                            v-if="checkIfFieldHasErrors(errors, 'last_name')"
+                            id="last_name-error"
+                            class="error invalid-feedback"
+                    >{{ errors['last_name'][0] }}</span>
+                </div>
+                <div class="form-group">
+                    <label for="email">{{ $t('profile.email') }}</label>
+                    <input
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            id="email"
+                            :placeholder="$t('register.email')"
+                            :value="user.email"
+                            @input="email = $event.target.value"
+                            @keyup.enter="onSubmit"
+                            readonly
+                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email') }"
+                    >
+                    <span
+                            v-if="checkIfFieldHasErrors(errors, 'email')"
+                            id="email-error"
+                            class="error invalid-feedback"
+                    >{{ errors['email'][0] }}</span>
+                </div>
+                <div class="form-group">
+                    <label for="password">{{ $t('profile.password') }}</label>
+                    <input
+                            type="password"
+                            name="password"
+                            class="form-control"
+                            id="password"
+                            :placeholder="$t('register.password')"
+                            v-model="password"
+                            @keyup.enter="onSubmit"
+                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password') }"
+                    >
+                    <span
+                            v-if="checkIfFieldHasErrors(errors, 'password')"
+                            id="password-error"
+                            class="error invalid-feedback"
+                    >{{ errors['password'][0] }}</span>
+                </div>
+                <div class="form-group">
+                    <label for="password_confirmation">{{ $t('profile.confirmPassword') }}</label>
+                    <input
+                            type="password"
+                            name="password_confirmation"
+                            class="form-control"
+                            id="password_confirmation"
+                            :placeholder="$t('profile.confirmPassword')"
+                            v-model="password_confirmation"
+                            @keyup.enter="onSubmit"
+                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password_confirmation') }"
+                    >
+                    <span
+                            v-if="checkIfFieldHasErrors(errors, 'password_confirmation')"
+                            id="password_confirmation-error"
+                            class="error invalid-feedback"
+                    >{{ errors['password_confirmation'][0] }}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <router-link :to="{ name: 'Main' }" class="btn btn-default">{{ $t('common.back') }}</router-link>
+                <app-button @click="onSubmit" type="submit" class="btn-primary ml-2">{{ $t('common.save') }}</app-button>
+            </div>
+        </div>
+    </template>
+</page-content>

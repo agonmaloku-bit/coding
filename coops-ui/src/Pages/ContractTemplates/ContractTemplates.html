@@ -1,0 +1,275 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('contractTemplates.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                {{ $t('sidebar.dashboard') }}
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('contractTemplates.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('contractTemplates.allTemplates') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canAdd"
+                @click="showAddModal()"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+                style="width: 90px;"
+        >{{ $t('common.addNew') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll"></app-loader>
+        <table v-if="!isLoadingAll && contract_templatesPaginatedData"
+               class="table table-striped table-hover1 datatable table-borderless">
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('common.name') }}</th>
+                <th>{{ $t('contractTemplates.contractType') }}</th>
+                <th>{{ $t('contractTemplates.hasFile') }}</th>
+                <th style="width: 140px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in contract_templatesPaginatedData.data" :key="item.id">
+                <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.contract_type ? item.contract_type.name : '-' }}</td>
+                <td>
+                    <span v-if="item.file_path" class="badge badge-success">{{ $t('common.yes') }}</span>
+                    <span v-else class="badge badge-secondary">{{ $t('common.no') }}</span>
+                </td>
+                <td class="more_actions">
+                    <img v-if="canShow" @click="showInfoModal(item.id)" class="svg_icon info" src="/img/info.svg" />
+                    <img v-if="canEdit" @click="showEditModal(item)" class="svg_icon edit" src="/img/edit1.svg" />
+                    <i class="fas fa-download info mr-2" v-if="item.file_path" @click="downloadTemplate(item.id)" title="Download" style="cursor:pointer;"></i>
+                    <img v-if="canDelete" @click="onDeleteContractTemplate(item.id)" class="svg_icon delete" src="/img/delete.svg" />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div v-if="!isLoadingAll && contract_templatesPaginatedData !== null"
+             class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="contract_templatesPaginatedData.pagination ? contract_templatesPaginatedData.pagination.total_pages : 1"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getAllContractTemplates"
+            />
+        </div>
+        <div v-if="contract_templatesPaginatedData && contract_templatesPaginatedData.data && contract_templatesPaginatedData.data.length === 0 && !isLoadingAll">
+            <p class="text-black text-center m-5">{{ $t('contractTemplates.noTemplates') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<!-- Add Modal -->
+<teleport to="body">
+    <div class="modal fade show" :class="showAdd ? 'showAddModal' : ''" v-if="showAdd" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ $t('contractTemplates.addTemplate') }}</h5>
+                    <button type="button" class="close" @click="closeAdd"><span>&times;</span></button>
+                </div>
+                <form @submit.prevent="onSubmitAdd">
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.uploadFile') }}</label>
+                            <input type="file" class="form-control-file" @change="onAddFileChange" accept=".docx">
+                            <small class="text-muted">{{ $t('common.allowedFormats') }} .docx</small>
+                            <small v-if="isUploadingFile" class="text-info"><i class="fas fa-spinner fa-spin"></i> {{ $t('common.loading') }}</small>
+                            <div class="alert alert-info mt-2 p-2" style="font-size:12px;">
+                                <i class="fas fa-info-circle"></i> <strong>{{ $t('contractTemplates.form.wordTemplateHint') }}</strong><br>
+                                {{ $t('contractTemplates.form.wordTemplateDesc') }}<br>
+                                <div class="mt-1">
+                                    <span v-for="v in templateVariables" :key="v.key"
+                                        class="badge badge-secondary mr-1 mb-1"
+                                        style="font-size:11px;cursor:pointer;"
+                                        @click="copyToClipboard(v.key)"
+                                        :title="v.label">
+                                        {{ v.key }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.name') }}</label>
+                            <input type="text" class="form-control" :value="newContractTemplate.name"
+                                @input="$store.commit('contract_templates/setNewContractTemplateField', { field: 'name', value: $event.target.value })"
+                                :placeholder="$t('contractTemplates.form.namePlaceholder')">
+                            <small class="text-danger" v-if="errors && errors.name">{{ errors.name[0] }}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.contractType') }}</label>
+                            <VueMultiselect
+                                v-model="selectContractType"
+                                :options="contract_typeList"
+                                :searchable="true"
+                                :close-on-select="true"
+                                :placeholder="$t('contractTemplates.form.selectContractType')"
+                                label="name"
+                                track-by="id">
+                            </VueMultiselect>
+                            <small class="text-danger" v-if="errors && errors.contract_type_id">{{ errors.contract_type_id[0] }}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.content') }}</label>
+                            <div class="mb-2">
+                                <small class="text-muted">{{ $t('contractTemplates.form.insertVariables') }}:</small>
+                                <div class="row variable-groups mt-1">
+                                    <div class="col-md-4" v-for="g in templateVariableGroups" :key="g.key">
+                                        <div class="variable-group-title">
+                                            <i :class="g.icon"></i> {{ g.label }}
+                                        </div>
+                                        <button type="button" class="btn btn-sm variable-btn d-block w-100 text-left"
+                                            :class="v.icon ? 'btn-outline-info' : 'btn-outline-secondary'"
+                                            v-for="v in g.variables" :key="v.key"
+                                            @click="insertVariable(v.key, 'add')">
+                                            <i v-if="v.icon" :class="v.icon"></i>
+                                            {{ v.label }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <QuillEditor ref="addEditor" v-model:content="addContent" contentType="html"
+                                :toolbar="editorToolbar" theme="snow" style="min-height: 250px;" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="closeAdd">{{ $t('common.close') }}</button>
+                        <button type="submit" class="btn btn-primary" :disabled="isCreating">
+                            <span v-if="isCreating"><i class="fas fa-spinner fa-spin"></i> {{ $t('common.saving') }}</span>
+                            <span v-else>{{ $t('common.save') }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</teleport>
+
+<!-- Info Modal -->
+<teleport to="body">
+    <div class="modal fade show" :class="showInfo ? 'showInfoModal' : ''" v-if="showInfo" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ $t('contractTemplates.templateDetails') }}</h5>
+                    <button type="button" class="close" @click="showInfo = false"><span>&times;</span></button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;" v-if="contract_template">
+                    <p><strong>{{ $t('common.name') }}:</strong> {{ contract_template.name }}</p>
+                    <p><strong>{{ $t('contractTemplates.contractType') }}:</strong> {{ contract_template.contract_type ? contract_template.contract_type.name : '-' }}</p>
+                    <p v-if="contract_template.file_path"><strong>{{ $t('contractTemplates.form.uploadFile') }}:</strong>
+                        <a href="#" @click.prevent="downloadTemplate(contract_template.id)"><i class="fas fa-download"></i> Download</a>
+                    </p>
+                    <div v-if="contract_template.content">
+                        <strong>{{ $t('contractTemplates.form.content') }}:</strong>
+                        <div class="template-preview mt-2" v-html="contract_template.content"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="showInfo = false">{{ $t('common.close') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>
+
+<!-- Edit Modal -->
+<teleport to="body">
+    <div class="modal fade show" :class="showEdit ? 'showEditModal' : ''" v-if="showEdit" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ $t('contractTemplates.editTemplate') }}</h5>
+                    <button type="button" class="close" @click="closeEdit"><span>&times;</span></button>
+                </div>
+                <form @submit.prevent="onSubmitEdit">
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.uploadFile') }}</label>
+                            <input type="file" class="form-control-file" @change="onEditFileChange" accept=".docx">
+                            <small class="text-muted">{{ $t('common.allowedFormats') }} .docx</small>
+                            <small v-if="isUploadingFile" class="text-info"><i class="fas fa-spinner fa-spin"></i> {{ $t('common.loading') }}</small>
+                            <div class="alert alert-info mt-2 p-2" style="font-size:12px;">
+                                <i class="fas fa-info-circle"></i> <strong>{{ $t('contractTemplates.form.wordTemplateHint') }}</strong><br>
+                                {{ $t('contractTemplates.form.wordTemplateDesc') }}<br>
+                                <div class="mt-1">
+                                    <span v-for="v in templateVariables" :key="v.key"
+                                        class="badge badge-secondary mr-1 mb-1"
+                                        style="font-size:11px;cursor:pointer;"
+                                        @click="copyToClipboard(v.key)"
+                                        :title="v.label">
+                                        {{ v.key }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.name') }}</label>
+                            <input type="text" class="form-control" v-model="editName"
+                                :placeholder="$t('contractTemplates.form.namePlaceholder')">
+                            <small class="text-danger" v-if="errors && errors.name">{{ errors.name[0] }}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.contractType') }}</label>
+                            <VueMultiselect
+                                v-model="editContractType"
+                                :options="contract_typeList"
+                                :searchable="true"
+                                :close-on-select="true"
+                                :placeholder="$t('contractTemplates.form.selectContractType')"
+                                label="name"
+                                track-by="id">
+                            </VueMultiselect>
+                            <small class="text-danger" v-if="errors && errors.contract_type_id">{{ errors.contract_type_id[0] }}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ $t('contractTemplates.form.content') }}</label>
+                            <div class="mb-2">
+                                <small class="text-muted">{{ $t('contractTemplates.form.insertVariables') }}:</small>
+                                <div class="row variable-groups mt-1">
+                                    <div class="col-md-4" v-for="g in templateVariableGroups" :key="g.key">
+                                        <div class="variable-group-title">
+                                            <i :class="g.icon"></i> {{ g.label }}
+                                        </div>
+                                        <button type="button" class="btn btn-sm variable-btn d-block w-100 text-left"
+                                            :class="v.icon ? 'btn-outline-info' : 'btn-outline-secondary'"
+                                            v-for="v in g.variables" :key="v.key"
+                                            @click="insertVariable(v.key, 'edit')">
+                                            <i v-if="v.icon" :class="v.icon"></i>
+                                            {{ v.label }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <QuillEditor ref="editEditor" v-model:content="editContent" contentType="html"
+                                :toolbar="editorToolbar" theme="snow" style="min-height: 250px;" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="closeEdit">{{ $t('common.close') }}</button>
+                        <button type="submit" class="btn btn-primary" :disabled="isUpdating">
+                            <span v-if="isUpdating"><i class="fas fa-spinner fa-spin"></i> {{ $t('common.saving') }}</span>
+                            <span v-else>{{ $t('common.save') }}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</teleport>

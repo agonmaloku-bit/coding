@@ -1,0 +1,103 @@
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-7">
+                <h1 class="m-0">{{ $t('billsDashboard.title') }}</h1>
+                <p style="color:#64748b;font-size:0.9rem;margin-top:4px;">{{ $t('billsDashboard.subtitle') }}</p>
+            </div>
+            <div class="col-sm-5">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item">
+                        <router-link to="/platform">{{ $t('sidebar.dashboard') }}</router-link>
+                    </li>
+                    <li class="breadcrumb-item active">{{ $t('billsDashboard.title') }}</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        <!-- Loading -->
+        <div v-if="loading" class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        </div>
+
+        <template v-else>
+            <!-- Total banner -->
+            <div class="bills-total-banner mb-4">
+                <div class="bills-total-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div>
+                    <div class="bills-total-num">{{ stats.total }}</div>
+                    <div class="bills-total-label">{{ $t('billsDashboard.totalBills') }}</div>
+                </div>
+                <router-link to="/platform/apps/bills" class="btn btn-sm btn-outline-light ml-auto">
+                    {{ $t('billsDashboard.viewAll') }} <i class="fas fa-arrow-right ml-1"></i>
+                </router-link>
+            </div>
+
+            <!-- Status cards -->
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-3" v-for="card in statusCards" :key="card.key">
+                    <router-link
+                        :to="{ path: '/platform/apps/bills', query: { status: card.status } }"
+                        class="bills-stat-card"
+                        :style="{ '--card-color': card.color }"
+                    >
+                        <div class="bills-stat-icon">
+                            <i :class="card.icon"></i>
+                        </div>
+                        <div class="bills-stat-body">
+                            <div class="bills-stat-count">{{ stats[card.key] || 0 }}</div>
+                            <div class="bills-stat-label">{{ card.label }}</div>
+                        </div>
+                        <div class="bills-stat-bar" :style="{ width: pct(card.key) + '%' }"></div>
+                    </router-link>
+                </div>
+            </div>
+
+            <!-- Status breakdown bar -->
+            <div class="card mt-2">
+                <div class="card-header">
+                    <h3 class="card-title" style="font-size:0.9rem;font-weight:700;">
+                        {{ $t('billsDashboard.breakdown') }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="bills-breakdown-bar">
+                        <div
+                            v-for="card in statusCards"
+                            :key="card.key"
+                            class="bills-breakdown-segment"
+                            :style="{ width: pct(card.key) + '%', background: card.color }"
+                            :title="card.label + ': ' + (stats[card.key] || 0)"
+                        ></div>
+                    </div>
+                    <div class="bills-breakdown-legend mt-2">
+                        <span v-for="card in statusCards" :key="card.key" class="bills-legend-item">
+                            <span class="bills-legend-dot" :style="{ background: card.color }"></span>
+                            {{ card.label }} ({{ stats[card.key] || 0 }})
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="row mt-3">
+                <div class="col-md-6 mb-2">
+                    <router-link to="/platform/apps/bills" class="btn btn-outline-primary btn-block">
+                        <i class="fas fa-list mr-2"></i>{{ $t('billsDashboard.allBills') }}
+                    </router-link>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <router-link :to="{ path: '/platform/apps/bills', query: { openCreate: 1 } }" class="btn btn-outline-success btn-block">
+                        <i class="fas fa-plus mr-2"></i>{{ $t('billsDashboard.newBill') }}
+                    </router-link>
+                </div>
+            </div>
+        </template>
+
+    </div>
+</section>

@@ -1,0 +1,45 @@
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <a href="/platform" class="brand-link" style="text-decoration:none;">
+        <i class="fas fa-file-contract" style="font-size:1.4rem;color:#818cf8;margin-left:4px;"></i>
+        <span class="brand-text font-weight-light">Co<b>OPS</b></span>
+    </a>
+
+    <div class="sidebar">
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+<!--                <img src="/img/avatar.jpg" class="img-circle elevation-2" alt="User Image"-->
+<!--                     style="height: 2.1rem; width: 2.1rem;">-->
+                <div class="img-circle elevation-2 user-image-pmk" style="height: 2.1rem; width: 2.1rem;"></div>
+            </div>
+            <div class="info">
+                <router-link
+                        v-if="user"
+                        :to="{ name: 'Profile' }"
+                        class="d-block"
+                >{{ user.first_name + ' ' + user.last_name }}
+                </router-link>
+            </div>
+        </div>
+
+        <div class="form-inline">
+            <div class="input-group" data-widget="sidebar-search">
+                <input class="form-control form-control-sidebar" type="search" :placeholder="$t('sidebar.search')" aria-label="Search">
+                <div class="input-group-append">
+                    <button class="btn btn-sidebar">
+                        <i class="fas fa-search fa-fw"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <app-menu-item v-for="(item, index) in menu"
+                               :menuItem="item"
+                               :key="index"
+                               :icon="item.icon"
+                ></app-menu-item>
+            </ul>
+        </nav>
+    </div>
+</aside>

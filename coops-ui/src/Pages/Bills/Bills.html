@@ -1,0 +1,1324 @@
+<content-header>
+  <template #title>
+    <h1 class="m-0">{{ $t('bills.title') }}</h1>
+  </template>
+  <template #breadcrumb>
+    <breadcrumb-item>
+      <router-link to="/platform"> Dashboard </router-link>
+    </breadcrumb-item>
+    <breadcrumb-item :active="true"> {{ $t('bills.title') }} </breadcrumb-item>
+  </template>
+</content-header>
+
+<page-content>
+  <template #cardTitle> {{ $t('bills.allBills') }} </template>
+  <template #cardTools>
+    <div class="cw-view-toggle mr-2">
+      <button type="button"
+              class="cw-view-btn"
+              :class="{ active: viewMode === 'cards' }"
+              :title="'Cards view'"
+              @click="setViewMode('cards')"><i class="fas fa-th-large"></i></button>
+      <button type="button"
+              class="cw-view-btn"
+              :class="{ active: viewMode === 'kanban' }"
+              :title="'Kanban view'"
+              @click="setViewMode('kanban')"><i class="fas fa-columns"></i></button>
+      <button type="button"
+              class="cw-view-btn"
+              :class="{ active: viewMode === 'table' }"
+              :title="'Table view'"
+              @click="setViewMode('table')"><i class="fas fa-list"></i></button>
+    </div>
+    <app-button
+      v-if="canAdd"
+      @click="showAddModal()"
+      type="button"
+      class="cw-btn cw-btn--primary mr-2"
+      icon="fa-plus"
+      icon_size="fa-sm"
+      >{{ $t('bills.addNew') }}
+    </app-button>
+    <app-button
+      @click="exportOnExcel"
+      type="button"
+      class="cw-btn cw-btn--excel mr-2"
+      icon="fa-file-excel"
+      icon_size="fa-sm"
+      >{{ $t('common.export') }}
+    </app-button>
+    <!-- <app-button
+      v-if="canApprove"
+      @click="showInProgressBills()"
+      type="button"
+      class="btn-outline-warning btn-sm pl-3 pr-3 mr-2"
+      >Shfaq faturat në proces
+    </app-button>
+    <app-button
+      v-if="canApprove"
+      @click="showArchivedBills()"
+      type="button"
+      class="btn-outline-success btn-sm pl-3 pr-3 mr-2"
+      >Shfaq faturat e aprovuara
+    </app-button> -->
+
+    <!-- <img
+      v-if="canShow"
+      @click="showAllBillsss()"
+      class="svg_icon info ml-2"
+      src="/img/refresh.svg"
+    /> -->
+    <app-button
+      type="button"
+      class="cw-btn cw-btn--search"
+      :class="{ active: search }"
+      icon="fa-search"
+      icon_size="fa-sm"
+      @click="showSearch"
+      >{{ $t('common.search') }}
+    </app-button>
+  </template>
+  <template #cardBody>
+    <div v-if="search">
+      <!-- <h3 class="text-center mt-4 mb-3">Search</h3> -->
+      <div class="row search1" style="padding: 20px;">
+        <div class="col-12">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="">{{ $t('bills.dateFrom') }}</label>
+                <flat-pickr
+                  v-model="query.search.start_date"
+                  :config="config"
+                  class="form-control"
+                  :placeholder="$t('common.selectDate')"
+                  name="deadline_from"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="">{{ $t('bills.dateTo') }}</label>
+                <flat-pickr
+                  v-model="query.search.end_date"
+                  :config="config"
+                  class="form-control"
+                  :placeholder="$t('common.selectDate')"
+                  name="deadline_to"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group form-group-custom">
+                <label for="">{{ $t('bills.status') }}:</label>
+                <VueMultiselect
+                  v-model="query.search.status"
+                  :options="searchStatusList"
+                  :placeholder="$t('bills.billStatus')"
+                  label="name"
+                  track-by="id"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="row">
+            <div class="col-md-4" v-if="canShowSuppliers">
+              <div class="form-group form-group-custom">
+                <label for="supplier">{{ $t('bills.supplier') }}</label>
+                <VueMultiselect
+                  style="padding: 0px"
+                  v-model="searchSupplier"
+                  :options="supplierList"
+                  :placeholder="$t('bills.selectSupplier')"
+                  label="name"
+                  track-by="id"                  
+                />
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="">{{ $t('bills.keywords') }}</label>
+                <div class="input-group">
+                  <input
+                    v-model="query.search.text"
+                    @keyup.enter="onSubmitSearch"
+                    type="search"
+                    class="form-control"
+                    :placeholder="$t('bills.keywordsPlaceholder')"
+                  />
+                 
+                </div>
+              </div>
+            </div>
+            <div class="col-md-2" >
+              <div class="form-group">
+                <label for="">{{ $t('common.search') }}</label>
+                <div class="input-group-append">
+                  <app-button style="width: 100%"
+                    @click="onSubmitSearch"
+                    type="submit"
+                    class="btn-default btn-outline-primary"
+                    >{{ $t('common.search') }}
+                  </app-button>
+                </div>
+                </div>
+                </div>
+            <div class="col-md-1">
+              <div class="form-group">
+                <label for="">{{ $t('common.export') }}</label>
+                <div class="input-group">
+                  <app-button style="width: 100%"
+                    class="btn btn-outline-primary"
+                    @click="exportOnExcel"
+                    >{{ $t('common.export') }}
+                  </app-button>
+                </div>
+              </div>
+            </div>
+            <div v-if="canPrintAll">
+              <div class="col-md-1">
+                <div class="form-group">
+                  <label for="">{{ $t('common.print') }}</label>
+                  <div class="input-group">
+                    <app-button
+                    v-if="canPrintAll"
+                    type="button"
+                      class="button btn-outline-danger"
+                      @click="PDF"
+                      >{{ $t('common.print') }}
+                    </app-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- </div> -->
+    <!-- <app-loader v-if="isLoadingAll && canShowAll"></app-loader> -->
+
+    <!-- Generate Procesverbal button — always visible when bills are selected, outside search panel -->
+    <div v-if="canGenerateReport && selectedBillIds.length > 0" class="px-3 pb-2">
+      <button
+        type="button"
+        class="btn btn-warning text-white"
+        style="font-weight:600"
+        :disabled="isGeneratingReport"
+        @click="generateProcessVerbal()"
+      >
+        <i class="fas fa-file-pdf mr-1"></i>
+        {{ isGeneratingReport ? $t('bills.generatingReport') : $t('bills.generateProcessVerbal') }}
+        ({{ selectedBillIds.length }})
+      </button>
+    </div>
+
+    <table
+      v-if="viewMode === 'table' && !isLoadingAll && billsPaginatedData"
+      class="table table-striped table-hover1 datatable table-borderless"
+    >
+      <thead>
+        <tr>
+          <th v-if="canGenerateReport" style="width:36px; text-align:center;">
+            <input
+              type="checkbox"
+              :checked="allEligibleSelected()"
+              @change="selectAllEligibleBills()"
+              :title="$t('bills.selectAllEligible')"
+              style="cursor:pointer;width:15px;height:15px"
+            />
+          </th>
+          <th style="width: 10px">#</th>
+          <th>{{ $t('bills.type') }}</th>
+          <th>{{ $t('bills.value') }}</th>
+          <th>{{ $t('bills.billNumber') }}</th>
+          <th>{{ $t('bills.department') }}</th>
+          <th>{{ $t('bills.acceptedBy') }}</th>
+          <th>{{ $t('bills.supplier') }}</th>
+          <th>{{ $t('bills.createdBy') }}</th>
+          <th>{{ $t('bills.date') }}</th>
+          <th>{{ $t('bills.step') }}</th>
+          <th>{{ $t('bills.status') }}</th>
+          <th v-if="canApprove">{{ $t('common.approve') }}</th>
+          <th style="width: 140px">{{ $t('common.more') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in billsPaginatedData.data" :key="index">
+          <td v-if="canGenerateReport" style="text-align:center;vertical-align:middle;">
+            <input
+              v-if="isEligibleForReport(item)"
+              type="checkbox"
+              :checked="isBillSelected(item.id)"
+              @change="toggleBillSelection(item.id)"
+              style="cursor:pointer;width:15px;height:15px"
+            />
+          </td>
+          <td>{{ ((query.page * 10) - 10) + (index + 1) }}</td>
+          <!-- <td>{{ stringifyItem(item) }}</td> -->
+          <td>{{ item.type }}</td>
+          <td>{{ item.value }}</td>
+          <td>{{ item.bill_no }}</td>
+          <td>{{ item.assigned_dep_id }}</td>
+          <td> {{ item.updated_by.first_name }} {{ item.updated_by.last_name }}</td>
+          <td>{{ item.supplier }} </td>
+          <td>
+            {{ item.created_by.first_name }} {{ item.created_by.last_name }}
+          </td>
+          <td>{{ new Date(item.created_at).toLocaleString() }}</td>
+          <td>
+            <span class="badge badge-success badge-pill">
+              {{ $t('bills.step') }} {{ item.step }}
+            </span>
+          </td>
+          <td>
+            <span :style="getStatusStyle(item.status)">{{ checkBillStatus(item.status) }}</span>
+          </td>
+          <td v-if="canApproveUser(item.status, item.assigned_dep_id_raw, item.can_approve)">
+            <div
+              v-if="canApprove && item.can_approve"
+              style="font-size: 1.1rem"
+            >
+              <i
+                class="far fa-check-circle fa-lg success"
+                @click="onApprove(item.id, item.step)"
+              ></i>
+              <i
+                class="far fa-times-circle fa-lg pl-2 delete"
+                @click="onCancel(item.id, item.step)"
+              ></i>
+            </div>
+          </td>       
+          <td v-else-if="canApprove"></td>
+          <td class="more_actions">
+            <img
+              v-if="canShow"
+              @click="showInfoModal(item.id)"
+              class="svg_icon info ml-2"
+              src="/img/info.svg"
+            />
+            <img
+              v-if="canEdit && (item.status === 1)"
+              @click="showEditModal(item.id)"
+              class="svg_icon edit ml-2"
+              src="/img/edit1.svg"
+            />
+            <img
+              v-if="canDelete && (item.status === 1) && !item.can_approve"
+              @click="showDeleteModal(item.id)"
+              class="svg_icon delete ml-2"
+              src="/img/delete.svg"
+            />
+            <i
+              v-if="item.can_print"
+              @click="showInfoModal(item.id)"
+              class="fas fa-print ml-2"
+              style="cursor:pointer;color:#28a745;font-size:1.1rem"
+              :title="$t('common.print')"
+            ></i>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- CARDS VIEW -->
+    <div v-if="viewMode === 'cards' && !isLoadingAll && billsPaginatedData && billsPaginatedData.data.length"
+         class="cw-cards-grid">
+      <bill-card
+        v-for="(item) in billsPaginatedData.data"
+        :key="item.id"
+        :item="item"
+        @open="openBillWorkflowDrawer"
+        @print="showInfoModal"
+      />
+    </div>
+
+    <!-- KANBAN VIEW -->
+    <div v-if="viewMode === 'kanban' && !isLoadingAll && billsPaginatedData && billsPaginatedData.data.length"
+         class="cw-kanban cw-kanban--bills">
+      <div class="cw-kanban__col"
+           v-for="col in kanbanColumns"
+           :key="col.id"
+           :class="'cw-kanban__col--' + col.key">
+        <div class="cw-kanban__head">
+          <span class="cw-kanban__title">
+            <i class="fas" :class="col.icon"></i>
+            {{ col.label }}
+          </span>
+          <span class="cw-kanban__count">{{ col.items.length }}</span>
+        </div>
+        <div class="cw-kanban__body">
+          <bill-card
+            v-for="item in col.items"
+            :key="item.id"
+            :item="item"
+            :compact="true"
+            @open="openBillWorkflowDrawer"
+            @print="showInfoModal"
+          />
+          <div v-if="!col.items.length" class="cw-kanban__empty">
+            {{ $t('bills.noResults') }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      v-if="!isLoadingAll && billsPaginatedData.data.length >= 1"
+      class="vertical-center mt-2 mb-2 ml-3 row"
+
+   >
+      <v-pagination
+        v-model="query.page"
+        :pages="billsPaginatedData.meta.last_page"
+        :range-size="2"
+        active-color="#DCEDFF"
+        @update:modelValue="getResults"
+      />
+    </div>
+    <div v-if="billsPaginatedData">
+      <p
+        v-if="billsPaginatedData.data.length == 0"
+        class="text-black text-center m-5"
+      >
+        {{ $t('bills.noResults') }}
+      </p>
+    </div>
+    <div v-if="!canShowAll">
+      <p class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+    </div>
+  </template>
+</page-content>
+
+<teleport to="body">
+  <bill-workflow-drawer
+    :open="workflowDrawerOpen"
+    :bill="bill"
+    :timeline="workflowTimeline"
+    :loading-timeline="workflowTimelineLoading"
+    :current-user="user"
+    :can-approve-prop="canApprove"
+    :busy="workflowDrawerBusy"
+    :ai-enabled="aiEnabled && canAiVerify"
+    :ai-verify="aiVerify"
+    @close="closeWorkflowDrawer"
+    @approve="onDrawerApprove"
+    @cancel="onDrawerCancel"
+    @comment="onDrawerComment"
+    @download-file="onDrawerDownloadFile"
+    @verify-ai="runAiVerify"
+    @print="onDrawerPrint"
+  />
+
+  <!-- create a bill -->
+  <div
+    v-if="modalAddActive"
+    @click.stop=""
+    class="modal fade"
+    :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"
+    id="modal-add"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">{{ $t('bills.form.addBill') }}</h4>
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </app-button>
+        </div>
+        <div
+          class="modal-body p-0"
+          style="max-height: calc(100vh - 220px); overflow-y: auto"
+        >
+          <table
+            v-if="!isLoading && newBill"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <thead>
+              <tr>
+                <th>{{ $t('bills.form.nameLabel') }}</th>
+                <th>{{ $t('bills.form.descriptionLabel') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="canShowSuppliers">
+                <td>{{ $t('bills.form.supplier') }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <VueMultiselect
+                      v-model="selecteNewSuppliers"
+                      :options="supplierList"
+                      :tag-placeholder="$t('bills.form.supplierPlaceholder')"
+                      :placeholder="$t('bills.form.supplierSearchPlaceholder')"
+                      label="name"
+                      track-by="id"
+                      :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'id') }"
+                      aria-describedby="supplier-id-error"
+                      @keyup.enter="onSubmitAdd"
+                      style="flex: 1;"
+                    />
+                    <button v-if="canAddSupplier" type="button" class="btn btn-sm btn-outline-primary ml-2" @click="openAddSupplierModal" :title="$t('contracts.form.addNewSupplier')">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'id')"
+                    id="supplier-id-error"
+                    class="error invalid-feedback"
+                  >
+                    {{ errors['id'][0] }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="selecteNewSuppliers && !selectedSupplierNoContract">
+                <td>{{ $t('bills.form.contract') }}</td>
+                <td>
+                  <VueMultiselect
+                    v-model="selectedNewContract"
+                    :options="supplierContracts"
+                    :placeholder="$t('bills.form.contractPlaceholder')"
+                    label="name"
+                    track-by="id"
+                    :loading="loadingContracts"
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <small v-if="supplierContracts.length === 0 && !loadingContracts && selecteNewSuppliers" class="text-warning">
+                    {{ $t('bills.form.noContractsFound') }}
+                  </small>
+                </td>
+              </tr>
+              <tr v-if="selecteNewSuppliers && selectedSupplierNoContract">
+                <td>{{ $t('bills.form.contract') }}</td>
+                <td>
+                  <span class="badge badge-info">{{ $t('bills.form.noContractRequired') }}</span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.billNumber') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'bill_no', this.isCreating) }"
+                    name="bill_no"
+                    :placeholder="$t('bills.form.billNumberPlaceholder')"
+                    @input="addBillInputAction"
+                    :value="newBill.bill_no"
+                    aria-describedby="add-bill_no-error"
+                    ref="bill_no"
+                    required
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'bill_no', this.isCreating)"
+                    id="add-bill_no-error"
+                    class="error invalid-feedback"
+                    >{{ errors['bill_no'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.type') }}</td>
+                <td class="radioBtn">
+                  <input type="radio" name="type" value="Mall" id="Mall" />
+                  <label for="Mall" class="radio-inline">{{ $t('bills.form.goods') }}</label>
+                  <label for="Sherbim" class="radio-inline second">
+                    <input
+                      type="radio"
+                      name="type"
+                      value="Sherbim"
+                      id="Sherbim"
+                    />
+                    {{ $t('bills.form.service') }}
+                  </label>
+                  <span
+                    v-if="errors && errors.type"
+                    id="add-type-error"
+                    class="error invalid-feedback"
+                  >
+                    {{ errors.type[0] }}
+                  </span>
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.form.value') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'value' , this.isCreating) }"
+                    name="value"
+                    :placeholder="$t('bills.form.valuePlaceholder')"
+                    @input="addBillInputAction"
+                    :value="newBill.value"
+                    aria-describedby="add-value-error"
+                    required
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'value', this.isCreating)"
+                    id="add-value-error"
+                    class="error invalid-feedback"
+                    >{{ errors['value'][0] }}</span
+                  >
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.form.description') }}</td>
+                <td>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    name="description"
+                    :placeholder="$t('bills.form.descriptionPlaceholder')"
+                    @input="addBillInputAction"
+                    :value="newBill.description"
+                    ref="description"
+                    @keyup.enter="onSubmitAdd"
+                  ></textarea>
+                </td>
+              </tr>
+
+              <!-- <tr>
+                <td>Porositi:*</td>
+                <td>
+                  <input
+                    type="text"
+                    name="ordered"
+                    class="form-control"
+                    id="first_name"
+                    placeholder="Emri"
+                    :value="user.first_name"
+                    @input="first_name = $event.target.value"
+                    style="background-color: #dee2e6"
+                    readonly
+                  />
+                </td>
+              </tr> -->
+
+              <tr>
+                <td>{{ $t('bills.form.department') }}</td>
+                <td>
+                  <VueMultiselect
+                    v-model="selecteNewDepartments"
+                    :options="departmentList"
+                    :tag-placeholder="$t('bills.form.departmentPlaceholder')"
+                    :placeholder="$t('bills.form.departmentSearchPlaceholder')"
+                    label="name"
+                    track-by="id"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id') }"
+                    aria-describedby="department-id-error"
+                    @keyup.enter="onSubmitAdd"
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'department_id')"
+                    id="department-id-error"
+                    class="error invalid-feedback"
+                  >
+                    {{ errors['department_id'][0] }}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.comment') }}</td>
+                <td>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    name="comment"
+                    :placeholder="$t('bills.form.commentPlaceholder')"
+                    @input="addBillInputAction"
+                    :value="newBill.comment"
+                  ></textarea>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.addDocument') }}</td>
+                <td>
+                  <small style="color: red;">{{ $t('common.allowedFormats') }} csv, xls,
+                    xlsx,
+                    doc,
+                    docx,
+                    pdf,
+                    jpg,
+                    png,
+                    jpeg</small>
+                  <div class="input-group">
+                    <div class="custom-file">
+                      <input
+                        type="file"
+                        class="custom-file-input"
+                        id="attachment"
+                        name="files"
+                        ref="filesInsert"
+                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'files', this.isCreating) }"
+                        aria-describedby="files-error"
+                        multiple="multiple"
+                        accept="image/*,.csv,.xls,.xlsx,.doc,.docx,.pdf"
+                        @change="onFileInsert"
+                      />
+                      <label class="custom-file-label" for="attachment"
+                        >{{ this.labelFilesNameInsert }}</label
+                      >
+                    </div>
+                    <div class="input-group-append">
+                      <button type="button" class="btn btn-outline-secondary" @click="openCamera" :title="$t('bills.form.takePhoto')">
+                        <i class="fas fa-camera"></i>
+                      </button>
+                    </div>
+                    <span
+                      v-if="checkIfFieldHasErrors(errors, 'files', this.isCreating)"
+                      id="files-error"
+                      class="error invalid-feedback"
+                      >{{ errors['files'][0] }}</span
+                    >
+                  </div>
+                  <!-- Camera capture -->
+                  <div v-if="showCamera" class="camera-container mt-2">
+                    <video v-show="cameraStream && !capturedImage" ref="cameraVideo" autoplay playsinline class="camera-video"></video>
+                    <img v-if="capturedImage" :src="capturedImage" class="camera-video" />
+                    <canvas ref="cameraCanvas" style="display:none;"></canvas>
+                    <div class="mt-2">
+                      <button v-if="cameraStream && !capturedImage" type="button" class="btn btn-sm btn-primary mr-2" @click="capturePhoto">
+                        <i class="fas fa-camera"></i> {{ $t('bills.form.capture') }}
+                      </button>
+                      <button v-if="capturedImage" type="button" class="btn btn-sm btn-warning mr-2" @click="retakePhoto">
+                        <i class="fas fa-redo"></i> {{ $t('bills.form.retake') }}
+                      </button>
+                      <button v-if="capturedImage" type="button" class="btn btn-sm btn-success mr-2" @click="usePhoto">
+                        <i class="fas fa-check"></i> {{ $t('bills.form.usePhoto') }}
+                      </button>
+                      <button type="button" class="btn btn-sm btn-secondary" @click="closeCamera">
+                        <i class="fas fa-times"></i> {{ $t('common.close') }}
+                      </button>
+                    </div>
+                  </div>
+                  <!-- AI: extract fields from uploaded file -->
+                  <div v-if="aiEnabled && canAiVerify" class="mt-2">
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      style="background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;font-weight:600;"
+                      :disabled="aiExtract.loading || !hasInsertFiles"
+                      @click="runAiExtract"
+                    >
+                      <i class="fas" :class="aiExtract.loading ? 'fa-spinner fa-spin' : 'fa-magic'"></i>
+                      {{ aiExtract.loading ? 'Extracting…' : 'Extract fields with AI' }}
+                    </button>
+                    <small v-if="!hasInsertFiles" class="ml-2 text-muted">
+                      Choose an invoice image or PDF first.
+                    </small>
+                  </div>
+                  <div
+                    v-if="aiExtract.show"
+                    class="ai-verify-panel mt-2"
+                    :class="'ai-verify--' + (aiExtract.severity || 'pending')"
+                  >
+                    <div class="ai-verify__head">
+                      <i class="fas" :class="aiSeverityIcon(aiExtract.severity)"></i>
+                      <strong>AI Extraction</strong>
+                      <span v-if="aiExtract.message" class="ai-verify__msg"> — {{ aiExtract.message }}</span>
+                    </div>
+                    <ul v-if="aiExtract.applied && aiExtract.applied.length" class="ai-verify__list">
+                      <li v-for="(f, i) in aiExtract.applied" :key="i" class="ai-issue--ok">
+                        <span class="ai-issue__sev">SET</span>
+                        <span class="ai-issue__msg">
+                          <strong>{{ f.field }}:</strong>
+                          <code>{{ f.value }}</code>
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <app-button
+            v-if="!isCreating"
+            @click="onSubmitAdd"
+            type="button"
+            class="btn-primary"
+            >{{ $t('common.save') }}
+          </app-button>
+          <app-button
+            v-if="isCreating"
+            class="btn-primary"
+            type="button"
+            disabled
+          >
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            {{ $t('common.saving') }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- info modal -->
+  <div
+    v-if="bill && modalInfoActive"
+    @click.stop=""
+    class="modal fade"
+    :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }"
+    id="modal-info"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">{{ $t('bills.info.title') }}</h4>
+          <button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div
+          class="modal-body p-0"
+          style="max-height: calc(100vh - 220px); overflow-y: auto"
+        >
+       
+          <table
+            v-if="!isLoading && billsPaginatedData"
+            id="printTable"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <div class=""  style="width: 100%;">
+              <img  style="width: 50%;" src="../../../public/img/Picture3.svg" />
+            </div>
+            <h3 style="text-align: center;"> {{ $t('bills.info.approvalFormTitle') }} </h3>
+            <thead>
+              <tr>
+                <th>{{ $t('bills.form.nameLabel') }}</th>
+                <th>{{ $t('bills.form.descriptionLabel') }}</th>
+              </tr>
+            </thead>
+         
+            <tbody>
+              <tr style="border: 1px solid black;">
+                <td>{{ $t('common.id') }}</td>
+                <td>{{ bill.id }}</td>
+              </tr>
+              <tr style="border: 1px solid black;">
+                <td>{{ $t('bills.supplier') }}</td>
+                <td>{{ bill.supplier }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.billNumber') }}</td>
+                <td>{{ bill.bill_no }}</td>
+              </tr>
+              <!-- <tr  style="border: 1px solid black;">
+                <td>Emri:</td>
+                <td>{{ bill.name }}</td>
+              </tr> -->
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.type') }}</td>
+                <td>{{ bill.type }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.value') }}</td>
+                <td>{{ bill.value }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.description') }}</td>
+                <td>{{ bill.description }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.forDepartment') }}</td>
+                <td>{{ bill.assigned_dep_id }}</td>
+              </tr>
+
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.acceptedByDepartment') }}</td>
+                <td>
+                  {{ bill.updated_by.first_name }} {{ bill.updated_by.last_name
+                  }}
+                </td>
+              </tr>
+
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.comment') }}</td>
+                <td>{{ bill.name }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.createdBy') }}</td>
+                <td>
+                  {{ bill.created_by.first_name }} {{ bill.created_by.last_name
+                  }}
+                </td>
+              </tr>
+
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.step') }}</td>
+                <td v-if="bill.step">
+                  <span class="badge badge-warning">{{ $t('bills.step') }} {{ bill.step }}</span>
+                </td>
+                <td v-else>
+                  <span class="badge badge-warning">{{ $t('bills.info.noStep') }}</span>
+                </td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.status') }}</td>
+                <td>
+                  <span class="badge badge-info">
+                    {{ checkBillStatus(bill.status) }}
+                  </span>
+                </td>
+              </tr>
+
+              <tr style="height: auto; border: 1px solid black;" v-if="bill.comments">
+                <td>{{ $t('bills.info.comments') }}</td>
+                <td v-if="bill.comments.length >= 1" style="max-width: 400px">
+                  <div v-for="comment in bill.comments" class="mb-1">
+                    <span
+                      v-if="comment.steps !== null"
+                      class="badge badge-warning"
+                      >{{ $t('bills.step') }} {{ comment.steps }}</span
+                    >
+                    <!-- <span
+                      v-if="comment.canceled == 1"
+                      class="badge badge-danger ml-1"
+                      >Canceled</span
+                    > -->
+                    <p class="mb-0">{{ comment.name }}</p>
+                    -<small>{{ comment.user_id }}</small>
+                  </div>
+                </td>
+                <td v-else>{{ $t('bills.info.noComments') }}</td>
+              </tr>
+
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.attachments') }}</td>
+                <td>
+                  <div v-for="(file, index) in bill.files" :key="file.id">
+                    <a
+                      href="#"
+                      @click="getBillAttachment(file)"
+                      class="btn-link text-secondary"
+                      ><i
+                        class="far fa-fw"
+                        :class="showAttachmentIcon(file.file_extension)"
+                      ></i
+                      >{{ file.file_name}}
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('common.lastModifiedAt') }}</td>
+                <td>{{ new Date(bill.updated_at).toLocaleString() }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('common.createdAt') }}</td>
+                <td>{{ new Date(bill.created_at).toLocaleString() }}</td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.firstApprovalDate') }}</td>
+                <td>
+                  <template v-if="bill.approved_first">
+                    {{ new Date(bill.approved_first).toLocaleString() }}
+                  </template>
+                  <template v-else> {{ $t('bills.info.noDate') }} </template>
+                </td>
+              </tr>
+              <tr  style="border: 1px solid black;">
+                <td>{{ $t('bills.info.secondApprovalDate') }}</td>
+                <td>
+                  <template v-if="bill.approved_second">
+                    {{ new Date(bill.approved_second).toLocaleString() }}
+                  </template>
+                  <template v-else> {{ $t('bills.info.noDate') }} </template>
+                </td>
+              </tr>
+              <tr v-if="bill.workflow_step_label" style="border: 1px solid black;">
+                <td>{{ $t('bills.info.awaitingApprovalFrom') }}</td>
+                <td><strong>{{ billStepLabel(bill.workflow_step_label) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- AI Verification panel -->
+          <div v-if="aiVerify.show" class="ai-verify-panel" :class="'ai-verify--' + (aiVerify.severity || 'pending')">
+            <div class="ai-verify__head">
+              <i class="fas" :class="aiSeverityIcon(aiVerify.severity)"></i>
+              <strong>AI Verification</strong>
+              <span v-if="aiVerify.message" class="ai-verify__msg"> — {{ aiVerify.message }}</span>
+            </div>
+            <ul v-if="aiVerify.findings && aiVerify.findings.length" class="ai-verify__list">
+              <li v-for="(f, i) in aiVerify.findings" :key="i" :class="'ai-issue--' + (f.severity || 'warn')">
+                <span class="ai-issue__sev">{{ (f.severity || 'warn').toUpperCase() }}</span>
+                <span class="ai-issue__msg">
+                  <strong v-if="f.field">{{ f.field }}:</strong>
+                  {{ f.message }}
+                  <small v-if="f.expected != null || f.actual != null">
+                    (expected <code>{{ f.expected }}</code>, found <code>{{ f.actual }}</code>)
+                  </small>
+                </span>
+              </li>
+            </ul>
+            <div v-else-if="aiVerify.severity === 'ok'" class="ai-verify__empty">No issues detected.</div>
+          </div>
+
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <div class="d-flex" style="gap:8px;flex-wrap:wrap;">
+            <app-button
+              v-if="aiEnabled && canAiVerify"
+              @click="runAiVerify"
+              type="button"
+              class="btn-default"
+              style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3;"
+              :disabled="aiVerify.loading"
+            >
+              <i class="fas fa-magic mr-1"></i>
+              {{ aiVerify.loading ? 'Verifying…' : 'Verify with AI' }}
+            </app-button>
+          </div>
+          <div v-if="bill.status !== 6 && bill.status !== 7">
+            <div class="d-flex" v-if="canApproveUser(bill.status, bill.assigned_dep_id_raw, bill.can_approve)">
+              <div
+                class="mr-2"
+                v-if="canApprove && bill.can_approve"
+              >
+                <app-button
+                  @click="onApprove(bill.id, bill.step)"
+                  type="button"
+                  class="btn-default success"
+                  >{{ $t('common.approve') }}</app-button
+                >
+                <app-button
+                  @click="onCancel(bill.id, bill.step)"
+                  type="button"
+                  class="btn-default delete"
+                  >{{ $t('common.reject') }}</app-button
+                >
+              </div>
+            </div>
+            <div v-else-if="canApprove"></div>
+          </div>
+          <div class="mr-2" v-if="bill.can_print">
+            <app-button @click="printData" type="button" class="btn-default">
+              {{ $t('common.print') }}
+            </app-button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- edit bill -->
+
+  <div
+    v-if="modalEditActive"
+    @click.stop=""
+    class="modal fade"
+    :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }"
+    id="modal-edit"
+  >
+    <div class="modal-dialog" style="max-width: 50%">
+      <div @click.stop="modalContent" class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">{{ $t('bills.edit.title') }}</h4>
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </app-button>
+        </div>
+        <div
+          class="modal-body p-0"
+          style="max-height: calc(100vh - 220px); overflow-y: auto"
+        >
+          <table
+            v-if="!isLoading"
+            class="table table-hover table-borderless table-striped p-0"
+          >
+            <thead>
+              <tr>
+                <th>{{ $t('bills.form.nameLabel') }}</th>
+                <th>{{ $t('bills.form.descriptionLabel') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="canShowSuppliers">
+                <td>{{ $t('bills.form.supplier') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'supplier', this.isUpdating) }"
+                    name="supplier"
+                    :value="bill.supplier"
+                    @input="updateBillInput"
+                    aria-describedby="supplier-error"
+                    readonly
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'supplier')"
+                    id="supplier-error"
+                    class="error invalid-feedback"
+                    >{{ errors['supplier'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.billNumber') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'bill_no', this.isUpdating) }"
+                    name="bill_no"
+                    :value="bill.bill_no"
+                    @input="updateBillInput"
+                    aria-describedby="bill_no-error"
+                    required
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'bill_no')"
+                    id="bill_no-error"
+                    class="error invalid-feedback"
+                    >{{ errors['bill_no'][0] }}</span
+                  >
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.form.type') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="type"
+                    :value="bill.type"
+                    style="background-color: #dee2e6"
+                    readonly
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.form.value') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'value', this.isUpdating) }"
+                    name="value"
+                    :value="bill.value"
+                    @input="updateBillInput"
+                    @keyup.enter="onSubmitEdit"
+                    aria-describedby="value-error"
+                    required
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'value')"
+                    id="value-error"
+                    class="error invalid-feedback"
+                    >{{ errors['value'][0] }}</span
+                  >
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.form.description') }}</td>
+                <td>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'description') }"
+                    name="description"
+                    :value="bill.description"
+                    :placeholder="$t('bills.form.descriptionPlaceholder')"
+                    @input="updateBillInput"
+                    aria-describedby="description-error"
+                    style="background-color: #dee2e6"
+                    readonly
+                  ></textarea>
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'description')"
+                    id="description-error"
+                    class="error invalid-feedback"
+                    >{{ errors['description'][0] }}</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.form.department') }}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'assigned_dep_id', this.isUpdating) }"
+                    name="assigned_dep_id"
+                    :value="bill.assigned_dep_id"
+                    @input="updateBillInput"
+                    aria-describedby="assigned_dep_id-error"
+                    readonly
+                  />
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'assigned_dep_id')"
+                    id="assigned_dep_id-error"
+                    class="error invalid-feedback"
+                    >{{ errors['assigned_dep_id'][0] }}</span
+                  >
+                </td>
+              </tr>
+
+              <tr>
+                <td>{{ $t('bills.edit.uploadedDocuments') }}</td>
+                <td>
+                  <ul class="list-unstyled mb-1">
+                    <div class="row">
+                      <p class="text-sm mb-0 ml-2">{{ $t('bills.edit.icon') }}</p>
+                      <p class="text-sm mb-0 ml-1">{{ $t('bills.edit.files') }}</p>
+                      <p class="text-sm mb-0 ml-auto">{{ $t('bills.edit.delete') }}</p>
+                    </div>
+                    <!-- tjetra -->
+                    <li>
+                      <div v-for="(file, index) in bill.files" :key="file.id">
+                        <a
+                          href="#"
+                          @click="getBillAttachment(file)"
+                          class="btn-link text-secondary"
+                          ><i
+                            class="far fa-fw"
+                            :class="showAttachmentIcon(file.file_extension)"
+                          ></i>
+                          {{ file.file_name }}</a
+                        >
+                        <i
+                          class="fas fa-times align-items-end delete"
+                          @click="onDeleteFile(file)"
+                        >
+                        </i>
+                      </div>
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.edit.addDocument') }}</td>
+                <td>
+                  <div class="input-group">
+                    <div class="custom-file">
+                      <input
+                        type="file"
+                        class="custom-file-input"
+                        id="attachment"
+                        name="files"
+                        ref="filesInsert"
+                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'files', this.isCreating) }"
+                        aria-describedby="files-error"
+                        multiple="multiple"
+                        @change="onFileInsert"
+                      />
+                      <label class="custom-file-label" for="attachment"
+                        >{{ this.labelFilesNameInsert }}</label
+                      >
+                    </div>
+                    <span
+                      v-if="checkIfFieldHasErrors(errors, 'files', this.isCreating)"
+                      id="files-error"
+                      class="error invalid-feedback"
+                      >{{ errors['files'][0] }}</span
+                    >
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>{{ $t('bills.edit.addCommentReason') }}</td>
+                <td>
+                  <textarea
+                    class="form-control"
+                    :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'comment', this.isUpdating) }"
+                    rows="3"
+                    name="comment"
+                    :placeholder="$t('bills.edit.addCommentPlaceholder')"
+                    @input="updateBillInput"
+                  ></textarea>
+                  <span
+                    v-if="checkIfFieldHasErrors(errors, 'comment', this.isUpdating)"
+                    id="comment-error"
+                    class="error invalid-feedback"
+                    >{{ errors['comment'][0] }}</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <app-loader v-if="isLoading"></app-loader>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <app-button
+            @click="closeModal"
+            type="button"
+            class="btn-default"
+            data-dismiss="modal"
+            >{{ $t('common.close') }}
+          </app-button>
+          <app-button
+            v-if="!isUpdating"
+            @click="onSubmitEdit"
+            type="button"
+            class="btn-primary"
+            >{{ $t('common.save') }}
+          </app-button>
+          <app-button
+            v-if="isUpdating"
+            class="btn-primary"
+            type="button"
+            disabled
+          >
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            {{ $t('common.saving') }}
+          </app-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</teleport>

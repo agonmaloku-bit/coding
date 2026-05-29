@@ -1,0 +1,21 @@
+
+.coops-server-toggle {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 13px;
+}
+.coops-server-toggle a {
+    color: #64748b;
+    text-decoration: none;
+}
+.coops-server-toggle a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+.coops-field code {
+    background: #f1f5f9;
+    color: #1d4ed8;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+}

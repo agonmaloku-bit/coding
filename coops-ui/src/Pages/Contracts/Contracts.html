@@ -1,0 +1,2214 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('contracts.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                Dashboard
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('contracts.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('contracts.allContracts') }}
+    </template>
+    <template #cardTools>
+        <div class="cw-view-toggle mr-2">
+            <button type="button"
+                    class="cw-view-btn"
+                    :class="{ active: viewMode === 'cards' }"
+                    :title="'Cards view'"
+                    @click="setViewMode('cards')"><i class="fas fa-th-large"></i></button>
+            <button type="button"
+                    class="cw-view-btn"
+                    :class="{ active: viewMode === 'kanban' }"
+                    :title="'Kanban view'"
+                    @click="setViewMode('kanban')"><i class="fas fa-columns"></i></button>
+            <button type="button"
+                    class="cw-view-btn"
+                    :class="{ active: viewMode === 'table' }"
+                    :title="'Table view'"
+                    @click="setViewMode('table')"><i class="fas fa-list"></i></button>
+        </div>
+        <app-button
+                v-if="canRequest"
+                @click="showRequestModal()"
+                type="button"
+                class="cw-btn cw-btn--primary mr-2"
+                icon="fa-plus"
+                icon_size="fa-sm"
+        >{{ $t('contracts.requestNew') }}
+        </app-button>
+        <app-button
+                @click="exportToExcel"
+                class="cw-btn cw-btn--excel mr-2"
+                icon="fa-file-excel"
+                icon_size="fa-sm"
+        >{{ $t('common.export') }}
+        </app-button>
+        <app-button
+                type="button"
+                class="cw-btn cw-btn--search"
+                :class="{ active: search }"
+                icon="fa-search"
+                icon_size="fa-sm"
+                @click="showSearch"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <div v-if="search">
+            <h3 class="text-center mt-4 mb-3">{{ $t('common.search') }}</h3>
+            <div class="row search1 mb-0 pb-0">
+                <div class="col-md-10 offset-md-1">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group form-group-custom">
+                                <label for="">{{ $t('contracts.search.status') }}</label>
+                                <VueMultiselect
+                                        v-model="query.search.status"
+                                        :options="searchStatusList"
+                                        :placeholder="$t('contracts.search.statusPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.sortOrder') }}</label>
+                                <VueMultiselect
+                                        v-model="query.search.sort"
+                                        :options="sortList"
+                                        :placeholder="$t('contracts.search.sortPlaceholder')"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.orderBy') }}</label>
+                                <VueMultiselect
+                                        v-model="query.search.orderBy"
+                                        :options="orderByList"
+                                        :placeholder="$t('contracts.search.sortPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.startDate') }}</label>
+                                <flat-pickr
+                                        v-model="query.search.start_date"
+                                        :config="config"
+                                        class="form-control"
+                                        :placeholder="$t('common.selectDate')"
+                                        name="deadline_from"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.endDate') }}</label>
+                                <flat-pickr
+                                        v-model="query.search.end_date"
+                                        :config="config"
+                                        class="form-control"
+                                        :placeholder="$t('common.selectDate')"
+                                        name="deadline_to"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-10 offset-md-1">
+                    <div class="row">
+                        <div class="col-3" v-if="giveAccessTo([allRoles.SUPER_ADMIN])">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.company') }}</label>
+                                <VueMultiselect
+                                        v-model="searchCompany"
+                                        :options="companyList"
+                                        :placeholder="$t('contracts.search.companyPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.department') }}</label>
+                                <VueMultiselect
+                                        v-model="searchDepartment"
+                                        :options="departmentList"
+                                        :placeholder="$t('contracts.search.departmentPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.procurementOfficer') }}</label>
+                                <VueMultiselect
+                                        v-model="searchProcurementOfficer"
+                                        :options="procurement_officerList"
+                                        :placeholder="$t('contracts.search.procurementPlaceholder')"
+                                        label="first_name"
+                                        :custom-label="firstAndLastname"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.responsiblePerson') }}</label>
+                                <VueMultiselect
+                                        v-model="searchResponsiblePerson"
+                                        :options="responsible_personList"
+                                        :placeholder="$t('contracts.search.responsiblePlaceholder')"
+                                        label="first_name"
+                                        :custom-label="firstAndLastname"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="form-group">
+                                <label for="">{{ $t('contracts.search.contractType') }}</label>
+                                <VueMultiselect
+                                        v-model="searchContractType"
+                                        :options="contract_typeList"
+                                        :placeholder="$t('contracts.search.typePlaceholder')"
+                                        label="name"
+                                        :custom-label="name"
+                                        track-by="id"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-10 offset-md-1">
+                    <div class="form-group">
+                        <div class="input-group">
+                            <input
+                                    v-model="query.search.text"
+                                    @keyup.enter="onSubmitSearch"
+                                    type="search"
+                                    class="form-control"
+                                    :placeholder="$t('contracts.search.keywordsPlaceholder')"
+                            >
+                            <div class="input-group-append">
+                                <app-button
+                                        @click="onSubmitSearch"
+                                        type="submit"
+                                        class="btn-default"
+                                >{{ $t('common.search') }}
+                                </app-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </div>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table v-if="viewMode === 'table' && !isLoadingAll && contractsPaginatedData"
+               class="table table-striped table-hover1 datatable table-borderless">
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('contracts.fileNumber') }}</th>
+                <th>{{ $t('contracts.name') }}</th>
+                <th>{{ $t('contracts.type') }}</th>
+                <th>{{ $t('contracts.contractorName') }}</th>
+                <th>{{ $t('contracts.deadlineFrom') }}</th>
+                <th>{{ $t('contracts.deadlineTo') }}</th>
+                <th v-if="canEdit">{{ $t('contracts.responsiblePerson') }}</th>
+                <th>{{ $t('contracts.createdBy') }}</th>
+                <th v-if="canEdit">{{ $t('contracts.step') }}</th>
+                <th v-if="canEdit">{{ $t('common.status') }}</th>
+                <th v-if="canApprove">{{ $t('common.approve') }}</th>
+                <th style="width: 160px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in contractsPaginatedData.data" :key="index">
+                <td>{{ ((query.page * 10) - 10) + (index + 1) }}</td>
+                <td>{{ item.serial_number }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.contract_type.name }}</td>
+                <td>{{ item.supplier ? item.supplier.name : item.name_of_contractor }}</td>
+                <td>{{ item.deadline_from }}</td>
+                <td>{{ item.deadline_to != null ? item.deadline_to : $t('contracts.noDeadline') }}</td>
+                <td v-if="canEdit">{{ item.responsible_person.first_name }} {{ item.responsible_person.last_name }}
+                </td>
+                <td>
+                    {{ item.created_by.first_name }} {{ item.created_by.last_name }}
+                </td>
+                <td v-if="item.step != null && canEdit">
+                    <span class="badge badge-success badge-pill">
+                        Step {{ item.step }}
+                    </span>
+                </td>
+                <td v-else-if="canEdit">
+                    <span class="badge badge-warning badge-pill">
+                        {{ $t('contracts.noStep') }}
+                    </span>
+                </td>
+                <td v-if="canEdit">
+                    <span class="badge badge-info">
+                      {{ checkContractStatus(item.status) }}
+                    </span>
+                </td>
+                <td v-if="canApproveUser(item)">
+                    <div v-if="(item.status === 2 || item.status === 3) && canApprove" style="font-size: 1.1rem;">
+                        <i
+                                class="far fa-check-circle fa-lg success"
+                                @click="onApprove(item.id, item.step)"
+                        ></i>
+                        <i
+                                class="far fa-times-circle fa-lg pl-2 delete"
+                                @click="onCancel(item.id, item.step)"
+                        ></i>
+                    </div>
+                </td>
+                <td v-else-if="canApprove">
+
+                </td>
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(item.id)"
+                            class="svg_icon info ml-2"
+                            src="/img/info.svg"
+                    />
+                    <img
+                            v-if="canEdit && canContractAttachments"
+                            @click="showAttachmentsModal(item.id)"
+                            class="svg_icon edit ml-2"
+                            src="/img/file.svg"
+                    />
+                    <img
+                            v-if="canEdit"
+                            @click="showEditModal(item.id)"
+                            class="svg_icon edit ml-2"
+                            src="/img/edit1.svg"
+                    />
+                    <img
+                            v-if="canDelete"
+                            @click="showDeleteModal(item.id)"
+                            class="svg_icon delete ml-2"
+                            src="/img/delete.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <!-- CARDS VIEW -->
+        <div v-if="viewMode === 'cards' && !isLoadingAll && contractsPaginatedData && contractsPaginatedData.data.length"
+             class="cw-cards-grid">
+            <contract-card
+                v-for="(item) in contractsPaginatedData.data"
+                :key="item.id"
+                :item="item"
+                @open="openWorkflowDrawer"
+            />
+        </div>
+        <!-- KANBAN VIEW -->
+        <div v-if="viewMode === 'kanban' && !isLoadingAll && contractsPaginatedData && contractsPaginatedData.data.length"
+             class="cw-kanban">
+            <div class="cw-kanban__col"
+                 v-for="col in kanbanColumns"
+                 :key="col.id"
+                 :class="'cw-kanban__col--' + col.key">
+                <div class="cw-kanban__head">
+                    <span class="cw-kanban__title">
+                        <i class="fas" :class="col.icon"></i>
+                        {{ col.label }}
+                    </span>
+                    <span class="cw-kanban__count">{{ col.items.length }}</span>
+                </div>
+                <div class="cw-kanban__body">
+                    <contract-card
+                        v-for="item in col.items"
+                        :key="item.id"
+                        :item="item"
+                        :compact="true"
+                        @open="openWorkflowDrawer"
+                    />
+                    <div v-if="!col.items.length" class="cw-kanban__empty">
+                        {{ $t('contracts.noContracts') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-if="!isLoadingAll && contractsPaginatedData.data.length >= 1"
+             class="vertical-center mt-2 mb-2 ml-3 row">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="contractsPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults" 
+            />
+        </div>
+        <div v-if="contractsPaginatedData">
+            <p v-if="contractsPaginatedData.data.length == 0" class="text-black text-center m-5">{{ $t('contracts.noContracts') }}</p>
+        </div>
+        <div v-if="!canShowAll">
+            <p class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <contract-workflow-drawer
+        :open="workflowDrawerOpen"
+        :contract="contract"
+        :timeline="workflowTimeline"
+        :loading-timeline="workflowTimelineLoading"
+        :current-user="user"
+        :users="userList"
+        :can-approve-prop="canApprove"
+        :can-reassign="user && user.roles && user.roles.length && (user.roles[0].name === 'Super Admin' || user.roles[0].name === 'Admin')"
+        :busy="workflowDrawerBusy"
+        @close="closeWorkflowDrawer"
+        @approve="onDrawerApprove"
+        @request-changes="onDrawerRequestChanges"
+        @cancel="onDrawerCancel"
+        @reassign="onDrawerReassign"
+        @comment="onDrawerComment"
+        @download-file="onDrawerDownloadFile"
+    />
+
+    <div @click="closeModal" class="modal fade" :class="{ 'show': modalAddActive, 'showModal': modalAddActive }"
+         id="modal-add">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    ><span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" class="table table-hover table-borderless table-striped p-0">
+                        <!--                        <thead>-->
+                        <!--                        <tr>-->
+                        <!--                            <th>Col</th>-->
+                        <!--                            <th>Description</th>-->
+                        <!--                        </tr>-->
+                        <!--                        </thead>-->
+                        <tbody>
+                        <!--                        <tr>-->
+                        <!--                            <td>Status:*</td>-->
+                        <!--                            <td>-->
+                        <!--                                <VueMultiselect-->
+                        <!--                                        v-model="selectStatus"-->
+                        <!--                                        :options="statusList"-->
+                        <!--                                        placeholder="Select a status"-->
+                        <!--                                        label="name"-->
+                        <!--                                        track-by="id"-->
+                        <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'status', this.isCreating) }"-->
+                        <!--                                        aria-describedby="status-error"-->
+                        <!--                                />-->
+                        <!--                                <span-->
+                        <!--                                        v-if="checkIfFieldHasErrors(errors, 'status', this.isCreating)"-->
+                        <!--                                        id="status-error"-->
+                        <!--                                        class="error invalid-feedback"-->
+                        <!--                                >{{ errors['status'][0] }}</span>-->
+                        <!--                            </td>-->
+                        <!--                        </tr>-->
+                        <tr>
+                            <td>{{ $t('contracts.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isCreating) }"
+                                        name="name"
+                                        :placeholder="$t('contracts.form.namePlaceholder')"
+                                        @input="addContractInputAction"
+                                        :value="newContract.name"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="add-name-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'name', this.isCreating)"
+                                    id="add-name-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.contractType') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectContractType"
+                                        :options="filteredContractTypeList"
+                                        :placeholder="$t('contracts.form.selectContractType')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contract_type_id', this.isCreating) }"
+                                        aria-describedby="contract-type-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'contract_type_id', this.isCreating)"
+                                        id="contract-type-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['contract_type_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="canShowSuppliers">
+                            <td>{{ $t('contracts.form.contractorName') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <VueMultiselect
+                                            v-model="selectSupplier"
+                                            :options="supplierList"
+                                            :placeholder="$t('contracts.form.selectSupplier')"
+                                            label="name"
+                                            track-by="id"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'supplier_id', this.isCreating) }"
+                                            aria-describedby="supplier-error"
+                                            style="flex: 1;"
+                                    />
+                                    <button v-if="canAddSupplier" type="button" class="btn btn-sm btn-outline-primary ml-2" @click="openAddSupplierModal" :title="$t('contracts.form.addNewSupplier')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <span
+                                    v-if="checkIfFieldHasErrors(errors, 'supplier_id', this.isCreating)"
+                                    id="supplier-error"
+                                    class="error invalid-feedback"
+                                    style="display: block;"
+                                >{{ errors['supplier_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.address') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'address', this.isCreating) }"
+                                        name="address"
+                                        :placeholder="$t('contracts.form.addressPlaceholder')"
+                                        @input="addContractInputAction"
+                                        :value="newContract.address"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="address-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'address', this.isCreating)"
+                                    id="address-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['address'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.startDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="deadline_from"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.startDatePlaceholder')"
+                                            name="deadline_from"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_from', this.isCreating) }"
+                                            aria-describedby="deadline-from-error"
+                                    />
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_from', this.isCreating)"
+                                            id="deadline-from-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_from'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.dueDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="deadline_to"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.dueDatePlaceholder')"
+                                            name="deadline_to"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_to', this.isCreating) }"
+                                            aria-describedby="deadline-to-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_to', this.isCreating)"
+                                            id="deadline-to-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_to'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Notify me before days:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectNotifyDay"
+                                        :options="daysList"
+                                        placeholder="Select days"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'notify_me', this.isCreating) }"
+                                        aria-describedby="notify-me-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'notify_me', this.isCreating)"
+                                        id="notify-me-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['notify_me'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Company:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectCompany"
+                                        :options="companyList"
+                                        placeholder="Select a company"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isCreating) }"
+                                        aria-describedby="company-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isCreating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Department:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectDepartment"
+                                        :options="departmentList"
+                                        placeholder="Select a department"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isCreating) }"
+                                        aria-describedby="department-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id', this.isCreating)"
+                                        id="department-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['department_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Responsible person:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectResponsiblePerson"
+                                        :options="responsible_personList"
+                                        placeholder="Select a responsible person"
+                                        label="first_name"
+                                        :custom-label="firstAndLastname"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'responsible_person', this.isCreating) }"
+                                        aria-describedby="responsible-person-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'responsible_person', this.isCreating)"
+                                        id="responsible-person-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['responsible_person'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total price:*</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="selectTotalPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'total_price', this.isCreating) }"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="total-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'total_price', this.isCreating)"
+                                        id="total-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['total_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Unit price:*</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="selectUnitPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'unit_price', this.isCreating) }"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="unit-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'unit_price', this.isCreating)"
+                                        id="unit-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['unit_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment date:*</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="selectPaymentDate"
+                                            :config="config"
+                                            class="form-control"
+                                            placeholder="Select payment date"
+                                            name="payment_date"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_date', this.isCreating) }"
+                                            aria-describedby="payment-date-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" title="Toggle" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">Toggle</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'payment_date', this.isCreating)"
+                                            id="payment-date-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['payment_date'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment terms:*</td>
+                            <td>
+                                <!--                                <input-->
+                                <!--                                        type="text"-->
+                                <!--                                        class="form-control"-->
+                                <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating) }"-->
+                                <!--                                        name="payment_terms"-->
+                                <!--                                        placeholder="Payment terms"-->
+                                <!--                                        @input="addContractInputAction"-->
+                                <!--                                        :value="newContract.payment_terms"-->
+                                <!--                                        @keyup.enter="onSubmitAdd"-->
+                                <!--                                        aria-describedby="payment-terms-error"-->
+                                <!--                                        required-->
+                                <!--                                >-->
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating) }"
+                                        rows="3"
+                                        name="payment_terms"
+                                        placeholder="Payment terms"
+                                        @input="addContractInputAction"
+                                        :value="newContract.payment_terms"
+                                        aria-describedby="payment-terms-error"
+                                        required
+                                ></textarea>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating)"
+                                        id="payment-terms-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['payment_terms'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Comment:</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'comment', this.isCreating) }"
+                                        rows="3"
+                                        name="comment"
+                                        placeholder="Enter a comment ..."
+                                        @input="addContractInputAction"
+                                        :value="newContract.comment"
+                                ></textarea>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'comment', this.isCreating)"
+                                        id="comment-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['comment'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Attachment:</td>
+                            <td>
+                                <div class="input-group">
+                                    <div class="custom-file">
+                                        <input
+                                                type="file"
+                                                class="custom-file-input"
+                                                id="attachment"
+                                                name="files"
+                                                ref="filesInsert"
+                                                :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'files', this.isCreating) }"
+                                                aria-describedby="files-error"
+                                                multiple="multiple"
+                                                @change="onFileInsert"
+                                        >
+                                        <label class="custom-file-label" for="attachment">{{
+                                                this.labelFilesNameInsert
+                                            }}</label>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'files', this.isCreating)"
+                                            id="files-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['files'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="btn-default"
+                            data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isCreating"
+                                @click="onSubmitAdd"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isCreating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div @click="closeModal" class="modal fade" :class="{ 'show': modalRequestActive, 'showModal': modalRequestActive }"
+         id="modal-add">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    ><span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <!--                            <th>Column</th>-->
+                            <!--                            <th>Description</th>-->
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!--                        <tr v-if="canEdit">-->
+                        <!--                            <td>Step: *</td>-->
+                        <!--                            <td>-->
+                        <!--                                <VueMultiselect-->
+                        <!--                                        v-model="selectStep"-->
+                        <!--                                        :options="stepList"-->
+                        <!--                                        placeholder="Select step"-->
+                        <!--                                        label="name"-->
+                        <!--                                        track-by="id"-->
+                        <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'step', this.isCreating) }"-->
+                        <!--                                        aria-describedby="contract-type-error"-->
+                        <!--                                />-->
+                        <!--                                <span-->
+                        <!--                                        v-if="checkIfFieldHasErrors(errors, 'step', this.isCreating)"-->
+                        <!--                                        id="step-error"-->
+                        <!--                                        class="error invalid-feedback"-->
+                        <!--                                >{{ errors['step'][0] }}</span>-->
+                        <!--                            </td>-->
+                        <!--                        </tr>-->
+                        <tr>
+                            <td>{{ $t('contracts.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isCreating) }"
+                                        name="name"
+                                        :placeholder="$t('contracts.form.namePlaceholder')"
+                                        @input="addContractInputAction"
+                                        :value="newContract.name"
+                                        @keyup.enter="onSubmitRequest"
+                                        aria-describedby="add-name-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'name', this.isCreating)"
+                                    id="add-name-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.contractType') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectContractType"
+                                        :options="filteredContractTypeList"
+                                        :placeholder="$t('contracts.form.selectContractType')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contract_type_id', this.isCreating) }"
+                                        aria-describedby="contract-type-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'contract_type_id', this.isCreating)"
+                                        id="contract-type-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['contract_type_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="canShowSuppliers">
+                            <td>{{ $t('contracts.form.contractorName') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <VueMultiselect
+                                            v-model="selectSupplier"
+                                            :options="supplierList"
+                                            :placeholder="$t('contracts.form.selectSupplier')"
+                                            label="name"
+                                            track-by="id"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'supplier_id', this.isCreating) }"
+                                            aria-describedby="supplier-error"
+                                            style="flex: 1;"
+                                    />
+                                    <button v-if="canAddSupplier" type="button" class="btn btn-sm btn-outline-primary ml-2" @click="openAddSupplierModal" :title="$t('contracts.form.addNewSupplier')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <span
+                                    v-if="checkIfFieldHasErrors(errors, 'supplier_id', this.isCreating)"
+                                    id="supplier-error"
+                                    class="error invalid-feedback"
+                                    style="display: block;"
+                                >{{ errors['supplier_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.address') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'address', this.isCreating) }"
+                                        name="address"
+                                        :placeholder="$t('contracts.form.addressPlaceholder')"
+                                        @input="addContractInputAction"
+                                        :value="newContract.address"
+                                        @keyup.enter="onSubmitRequest"
+                                        aria-describedby="address-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'address', this.isCreating)"
+                                    id="address-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['address'][0] }}</span>
+                            </td>
+                        </tr>
+                        <!-- <tr>
+                            <td>Purpose contractor: *</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'purpose_contractor', this.isCreating) }"
+                                        name="purpose_contractor"
+                                        placeholder="Purpose contractor"
+                                        @input="addContractInputAction"
+                                        :value="newContract.purpose_contractor"
+                                        @keyup.enter="onSubmitRequest"
+                                        aria-describedby="purpose-contractor-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'purpose_contractor', this.isCreating)"
+                                    id="purpose-contractor-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['purpose_contractor'][0] }}</span>
+                            </td>
+                        </tr> -->
+                        <!--                        <tr>-->
+                        <!--                            <td>Company: *</td>-->
+                        <!--                            <td>-->
+                        <!--                                <VueMultiselect-->
+                        <!--                                        v-model="selectCompany"-->
+                        <!--                                :options="companyList"-->
+                        <!--                                placeholder="Select a company"-->
+                        <!--                                label="name"-->
+                        <!--                                track-by="id"-->
+                        <!--                                :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isCreating) }"-->
+                        <!--                                aria-describedby="company-error"-->
+                        <!--                                />-->
+                        <!--                                <span-->
+                        <!--                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isCreating)"-->
+                        <!--                                        id="company-error"-->
+                        <!--                                        class="error invalid-feedback"-->
+                        <!--                                >{{ errors['company_id'][0] }}</span>-->
+                        <!--                            </td>-->
+                        <!--                        </tr>-->
+                        <tr>
+                            <td>{{ $t('contracts.form.startDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="deadline_from"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.startDatePlaceholder')"
+                                            name="deadline_from"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_from', this.isCreating) }"
+                                            aria-describedby="deadline-from-error"
+                                    />
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_from', this.isCreating)"
+                                            id="deadline-from-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_from'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.dueDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="deadline_to"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.dueDatePlaceholder')"
+                                            name="deadline_to"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_to', this.isCreating) }"
+                                            aria-describedby="deadline-to-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_to', this.isCreating)"
+                                            id="deadline-to-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_to'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Notify me before days:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectNotifyDay"
+                                        :options="daysList"
+                                        placeholder="Select days"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'notify_me', this.isCreating) }"
+                                        aria-describedby="notify-me-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'notify_me', this.isCreating)"
+                                        id="notify-me-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['notify_me'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="user.roles[0].name === 'Super Admin' || user.roles[0].name === 'Legal Office'">
+                            <td>Company: *</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectCompany"
+                                        :options="companyList"
+                                        placeholder="Select a company"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isCreating) }"
+                                        aria-describedby="company-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isCreating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="user.roles[0].name === 'Super Admin' || user.roles[0].name === 'Procurement Officer' || user.roles[0].name === 'Legal Office'">
+                            <td>Department: *</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectDepartment"
+                                        :options="departmentList"
+                                        placeholder="Select a department"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isCreating) }"
+                                        aria-describedby="department-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id', this.isCreating)"
+                                        id="department-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['department_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Responsible person: *</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectResponsiblePerson"
+                                        :options="responsible_personList"
+                                        placeholder="Select a responsible person"
+                                        label="first_name"
+                                        :custom-label="firstAndLastname"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'responsible_person', this.isCreating) }"
+                                        aria-describedby="responsible-person-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'responsible_person', this.isCreating)"
+                                        id="responsible-person-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['responsible_person'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total price: *</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="selectTotalPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'total_price', this.isCreating) }"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="total-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'total_price', this.isCreating)"
+                                        id="total-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['total_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Unit price: *</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="selectUnitPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'total_price', this.isCreating) }"
+                                        @keyup.enter="onSubmitRequest"
+                                        aria-describedby="unti-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'unit_price', this.isCreating)"
+                                        id="unit-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['unit_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment date:</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="selectPaymentDate"
+                                            :config="config"
+                                            class="form-control"
+                                            placeholder="Select payment date"
+                                            name="payment_date"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_date', this.isCreating) }"
+                                            aria-describedby="payment-date-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" title="Toggle" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">Toggle</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'payment_date', this.isCreating)"
+                                            id="payment-date-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['payment_date'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment terms: *</td>
+                            <td>
+                                <!--                                <input-->
+                                <!--                                        type="text"-->
+                                <!--                                        class="form-control"-->
+                                <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating) }"-->
+                                <!--                                        name="payment_terms"-->
+                                <!--                                        placeholder="Payment terms"-->
+                                <!--                                        @input="addContractInputAction"-->
+                                <!--                                        :value="newContract.payment_terms"-->
+                                <!--                                        @keyup.enter="onSubmitRequest"-->
+                                <!--                                        aria-describedby="payment-terms-error"-->
+                                <!--                                        required-->
+                                <!--                                >-->
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating) }"
+                                        rows="3"
+                                        name="payment_terms"
+                                        placeholder="Payment terms"
+                                        @input="addContractInputAction"
+                                        :value="newContract.payment_terms"
+                                        aria-describedby="payment-terms-error"
+                                        required
+                                ></textarea><span
+                                    v-if="checkIfFieldHasErrors(errors, 'payment_terms', this.isCreating)"
+                                    id="payment-terms-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['payment_terms'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Contractor obligations:</td>
+                            <td>
+                                <!--                                <input-->
+                                <!--                                        type="text"-->
+                                <!--                                        class="form-control"-->
+                                <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contractor_obligations', this.isCreating) }"-->
+                                <!--                                        name="contractor_obligations"-->
+                                <!--                                        placeholder="Contractor obligations"-->
+                                <!--                                        @input="addContractInputAction"-->
+                                <!--                                        :value="newContract.contractor_obligations"-->
+                                <!--                                        @keyup.enter="onSubmitRequest"-->
+                                <!--                                        aria-describedby="contractor-obligations-error"-->
+                                <!--                                        required-->
+                                <!--                                >-->
+                                <textarea
+                                        class="form-control"
+                                        rows="3"
+                                        name="contractor_obligations"
+                                        placeholder="Contractor obligations"
+                                        @input="addContractInputAction"
+                                        :value="newContract.contractor_obligations"
+                                        aria-describedby="contractor-obligations-error"
+                                        
+                                ></textarea>
+                                <!-- <span
+                                    v-if="checkIfFieldHasErrors(errors, 'contractor_obligations', this.isCreating)"
+                                    id="contractor-obligations-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['contractor_obligations'][0] }}</span> -->
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Company obligations: </td>
+                            <td>
+                                <!--                                <input-->
+                                <!--                                        type="text"-->
+                                <!--                                        class="form-control"-->
+                                <!--                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_obligations', this.isCreating) }"-->
+                                <!--                                        name="company_obligations"-->
+                                <!--                                        placeholder="Company obligations"-->
+                                <!--                                        @input="addContractInputAction"-->
+                                <!--                                        :value="newContract.company_obligations"-->
+                                <!--                                        @keyup.enter="onSubmitRequest"-->
+                                <!--                                        aria-describedby="company-obligations-error"-->
+                                <!--                                        required-->
+                                <!--                                >-->
+                                <textarea
+                                        class="form-control"
+                                        rows="3"
+                                        name="company_obligations"
+                                        placeholder="Company obligations"
+                                        @input="addContractInputAction"
+                                        :value="newContract.company_obligations"
+                                        aria-describedby="company-obligations-error"
+                                
+                                ></textarea>
+                                <!-- <span
+                                    v-if="checkIfFieldHasErrors(errors, 'company_obligations', this.isCreating)"
+                                    id="company-obligations-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['company_obligations'][0] }}</span> -->
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Comment:</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'comment', this.isCreating) }"
+                                        rows="3"
+                                        name="comment"
+                                        placeholder="Enter a comment ..."
+                                        @input="addContractInputAction"
+                                        :value="newContract.comment"
+                                ></textarea>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'comment', this.isCreating)"
+                                        id="comment-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['comment'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Attachment:</td>
+                            <td>
+                                <div class="input-group">
+                                    <div class="custom-file">
+                                        <input
+                                                type="file"
+                                                class="custom-file-input"
+                                                id="attachment"
+                                                name="files"
+                                                ref="filesRequest"
+                                                :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'files.0', this.isCreating) }"
+                                                aria-describedby="files-error"
+                                                multiple="multiple"
+                                                @change="onFileRequest"
+                                        >
+                                        <label class="custom-file-label" for="attachment">{{
+                                                labelFilesNameRequest
+                                            }}</label>
+                                    </div>
+                                </div>
+                                <ul v-if="errors">
+                                    <li
+                                            v-for="error in errors[`files.0`]"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error }}
+                                    </li>
+                                    <li
+                                            v-for="error in errors[`files.1`]"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error }}
+                                    </li>
+                                    <li
+                                            v-for="error in errors[`files.2`]"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error }}
+                                    </li>
+                                    <li
+                                            v-for="error in errors[`files.3`]"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error }}
+                                    </li>
+                                    <li
+                                            v-for="error in errors[`files.4`]"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error }}
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <!-- Use Template Section (at end so user fills data first) -->
+                        <tr v-if="templateList.length > 0">
+                            <td>{{ $t('contractTemplates.useTemplate') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center mb-2">
+                                    <VueMultiselect
+                                            v-model="selectedTemplate"
+                                            :options="templateList"
+                                            :placeholder="$t('contractTemplates.selectTemplate')"
+                                            label="name"
+                                            track-by="id"
+                                            @select="onSelectTemplate"
+                                            :allow-empty="true"
+                                            style="flex: 1;"
+                                    />
+                                    <button type="button" class="btn btn-sm btn-outline-success ml-2"
+                                            v-if="selectedTemplate"
+                                            @click="fillSelectedTemplate"
+                                            :disabled="isFillingTemplate">
+                                        <i class="fas fa-sync-alt" :class="{'fa-spin': isFillingTemplate}"></i>
+                                    </button>
+                                </div>
+                                <div v-if="filledTemplateContent" class="mt-2">
+                                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; max-height: 200px; overflow-y: auto; font-size: 13px;" v-html="filledTemplateContent"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" @click="downloadFilledTemplate">
+                                        <i class="fas fa-download"></i> {{ $t('contractTemplates.downloadFilled') }}
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="btn-default"
+                            data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isCreating"
+                                @click="onSubmitRequest"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isCreating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div v-if="contract" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalAtthacmentsActive, 'showModal': modalAtthacmentsActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" class="table table-hover table-borderless table-striped p-0">
+                        <tbody>
+                        <tr>
+                            <td>Attachments:</td>
+                            <td>
+                                <ul class="list-unstyled mb-1">
+                                    <div class="row">
+                                        <p class="text-sm mb-0 ml-2">Icon</p>
+                                        <p class="text-sm mb-0 ml-1">Files</p>
+                                        <p v-if="canDelete" class="text-sm mb-0" style="margin-left: 17rem;">Delete</p>
+                                    </div>
+                                    <li v-for="file in files" :key="file.id">
+                                        <a
+                                                href="#"
+                                                @click="getContractAttachment(file)"
+                                                class="btn-link text-secondary"
+                                        ><i class="far fa-fw" :class="showAttachmentIcon(file.file_extension)"></i>
+                                            {{ file.file_name }}</a>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-times ml-4 mr-2 delete"
+                                                @click="updateContractFilesToDelete(file)"
+                                        ></i>
+                                    </li>
+                                    <li v-for="file in contract.files_restore" :key="file.id">
+                                        <a
+                                                href="#"
+                                                @click="getContractAttachment(file)"
+                                                class="btn-link text-secondary"
+                                        ><i class="far fa-fw" :class="showAttachmentIcon(file.file_extension)"></i>
+                                            {{ file.file_name }}</a>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-times ml-4 mr-2 delete"
+                                                @click="updateContractFilesFromRestoreToDelete(file)"
+                                        ></i>
+                                    </li>
+                                </ul>
+                            </td>
+                            <!--                            <td v-else>No Attachments</td>-->
+                        </tr>
+                        <tr v-if="canDelete">
+                            <td>Deleted attachments:</td>
+                            <td>
+                                <ul class="list-unstyled mb-1">
+                                    <div class="row">
+                                        <p class="text-sm mb-0 ml-2">Icon</p>
+                                        <p class="text-sm mb-0 ml-1">Files</p>
+                                        <p class="text-sm mb-0" style="margin-left: 17rem;">Restore</p>
+                                        <p class="text-sm mb-0 ml-3">Delete permanently</p>
+                                    </div>
+                                    <li v-for="file in filesDeleted" :key="file.id">
+                                        <a
+                                                href="#"
+                                                @click="getContractAttachment(file)"
+                                                class="btn-link text-danger"
+                                        ><i class="far fa-fw mr-1" :class="showAttachmentIcon(file.file_extension)"></i>
+                                            {{ file.file_id + '.' + file.file_extension }}</a>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-check ml-4 mr-2 success"
+                                                @click="updateContractFilesToRestore(file)"
+                                        ></i>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-times ml-4 mr-2 delete"
+                                                @click="updateContractFilesToDeletePermanent(file)"
+                                        ></i>
+                                    </li>
+                                    <li v-for="file in filesToDeleted" :key="file.id">
+                                        <a
+                                                href="#"
+                                                @click="getContractAttachment(file)"
+                                                class="btn-link text-danger"
+                                        ><i class="far fa-fw mr-1" :class="showAttachmentIcon(file.file_extension)"></i>
+                                            {{ file.file_id + '.' + file.file_extension }}</a>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-check ml-4 mr-2 success"
+                                                @click="updateContractFilesToRestoreFromDeleted(file)"
+                                        ></i>
+                                        <i
+                                                v-if="canDelete"
+                                                class="fas fa-times ml-4 mr-2 delete"
+                                                @click="updateContractFilesToDeletePermanent(file)"
+                                        ></i>
+                                    </li>
+                                </ul>
+                            </td>
+                            <!--                            <td v-else>No deleted attachments</td>-->
+                        </tr>
+                        <tr>
+                            <td>New attachment:</td>
+                            <td>
+                                <div class="input-group">
+                                    <div class="custom-file">
+                                        <input
+                                                type="file"
+                                                class="custom-file-input"
+                                                name="files"
+                                                ref="filesEdit"
+                                                :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'files.0', this.isUpdating) }"
+                                                aria-describedby="files-edit-error"
+                                                multiple="multiple"
+                                                @change="onFileChange"
+                                        >
+                                        <label class="custom-file-label" for="attachment">{{ labelFilesName }}</label>
+                                    </div>
+                                </div>
+                                <ul v-if="errors">
+                                    <li
+                                            v-for="error in errors"
+                                            id="files-edit-error"
+                                            class="small"
+                                            style="color: #c90000;"
+                                    >{{ error[0] }}
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="btn-default"
+                            data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button
+                            @click="onSubmitSaveAttachments"
+                            type="button"
+                            class="btn-default"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="contract && modalInfoActive" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <!--                        <thead>-->
+                        <!--                        <tr>-->
+                        <!--                            <th>Col</th>-->
+                        <!--                            <th>Description</th>-->
+                        <!--                        </tr>-->
+                        <!--                        </thead>-->
+                        <tbody>
+                        <tr>
+                            <td>Id:</td>
+                            <td>{{ contract.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>File number:</td>
+                            <td>{{ contract.serial_number }}</td>
+                        </tr>
+                        <tr>
+                            <td>Name:</td>
+                            <td>{{ contract.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Contract Type:</td>
+                            <td>{{ contract.contract_type.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Name of contractor:</td>
+                            <td>{{ contract.supplier ? contract.supplier.name : contract.name_of_contractor }}</td>
+                        </tr>
+                        <tr>
+                            <td>Address:</td>
+                            <td>{{ contract.address }}</td>
+                        </tr>
+                        <tr v-if="contract.status !== 1">
+                            <td>Purpose of contractor:</td>
+                            <td>{{ contract.purpose_contractor }}</td>
+                        </tr>
+
+                        <tr>
+                            <td>{{ $t('contracts.form.startDate') }}</td>
+                            <td>
+                  <span class="badge badge-info">
+                  {{ contract.deadline_from }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.dueDate') }}</td>
+                            <td>
+                  <span class="badge badge-info">
+                    {{ contract.deadline_to != null ? contract.deadline_to : $t('contracts.noDeadline') }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr v-if="contract.responsible_person">
+                            <td>Company:</td>
+                            <td v-if="contract.responsible_person.department">
+                                <div v-if="contract.responsible_person.department.company">
+                                    {{ contract.responsible_person.department.company.name }}
+                                </div>
+                                <div v-else>No Company</div>
+                            </td>
+                            <td v-else>No Company</td>
+                        </tr>
+                        <tr>
+                            <td>Department:</td>
+                            <td>{{ contract.responsible_person.department.name }}</td>
+                        </tr>
+                        <tr v-if="contract.responsible_person">
+                            <td>Responsible person:</td>
+                            <td>{{ contract.responsible_person.first_name }} {{
+                                    contract.responsible_person.last_name
+                                }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total price:</td>
+                            <td>{{ contract.total_price }} €</td>
+                        </tr>
+                        <tr>
+                            <td>Unit price:</td>
+                            <td>{{ contract.unit_price }} €</td>
+                        </tr>
+                        <tr>
+                            <td>Payment date:</td>
+                            <td>{{ contract.payment_date }}</td>
+                        </tr>
+                        <tr>
+                            <td>Payment terms:</td>
+                            <td>
+                                <div style="max-width: 200px;">
+                                    {{ contract.payment_terms }}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="contract.status != 1">
+                            <td>Contractor obligations:</td>
+                            <td>
+                                <div style="max-width: 300px;">
+                                    {{ contract.contractor_obligations }}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="contract.status != 1">
+                            <td>Company obligations:</td>
+                            <td>
+                                <div style="max-width: 200px;">
+                                    {{ contract.company_obligations }}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Created by:</td>
+                            <td>{{ contract.created_by.first_name }} {{ contract.created_by.last_name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Step:</td>
+                            <td v-if="contract.step">
+                                <span class="badge badge-warning">Step {{ contract.step }}</span>
+                            </td>
+                            <td v-else>
+                                <span class="badge badge-warning">No step</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Status:</td>
+                            <td>
+                  <span class="badge badge-info">
+                    {{ checkContractStatus(contract.status) }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr v-if="contract.comments">
+                            <td>Comments:</td>
+                            <td v-if="contract.comments.length >= 1" style="max-width: 400px;">
+                                <div v-for="comment in contract.comments" class="mb-1">
+                                    <span v-if="comment.steps !== null"
+                                          class="badge badge-warning">Step {{ comment.steps }}</span>
+                                    <span v-if="comment.canceled == 1" class="badge badge-danger ml-1">Canceled</span>
+                                    <p class="mb-0">{{ comment.name }}</p> - <small>{{ comment.user.first_name }}
+                                    {{ comment.user.last_name }}</small>
+                                </div>
+                            </td>
+                            <td v-else>No comments</td>
+                        </tr>
+                        <tr v-if="canContractAttachments && files.length >= 1">
+                            <td>Attachments:</td>
+                            <td>
+                                <div v-for="(file, index) in files" :key="file.id">
+                                    <a
+                                            href="#"
+                                            @click="getContractAttachment(file)"
+                                            class="btn-link text-secondary"
+                                    ><i class="far fa-fw" :class="showAttachmentIcon(file.file_extension)"
+                                    ></i>{{ file.file_id + '.' + file.file_extension }}
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Created at:</td>
+                            <td>{{ new Date(contract.created_at).toLocaleString() }}</td>
+                        </tr>
+                        <tr>
+                            <td>Last modified at:</td>
+                            <td>{{ new Date(contract.updated_at).toLocaleString() }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="btn-default"
+                            data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button
+                            @click="printData"
+                            type="button"
+                            class="btn-default"
+                    >Print
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="contract" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalEditActive, 'showModal': modalEditActive }" id="modal-edit">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="close"
+                                data-dismiss="modal"
+                                aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Id: *</td>
+                            <td><input type="text" class="form-control" name="id" :value="contract.id" readonly></td>
+                        </tr>
+                        <tr>
+                            <td>Serial number: *</td>
+                            <td><input type="text" class="form-control" name="id" :value="contract.serial_number"
+                                       readonly></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.name') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'name', this.isUpdating) }"
+                                        name="name"
+                                        :value="contract.name"
+                                        @input="updateContractInput"
+                                        aria-describedby="name-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'name')"
+                                    id="name-error"
+                                    class="error invalid-feedback"
+                            >{{ errors.name[0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.contractType') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editContractType"
+                                        :options="filteredEditContractTypeList"
+                                        :placeholder="$t('contracts.form.selectContractType')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contract_type_id', this.isUpdating) }"
+                                        aria-describedby="contract-type-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'contract_type_id', this.isUpdating)"
+                                        id="contract-type-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['contract_type_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="canShowSuppliers">
+                            <td>{{ $t('contracts.form.contractorName') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <VueMultiselect
+                                            v-model="editSupplier"
+                                            :options="supplierList"
+                                            :placeholder="$t('contracts.form.selectSupplier')"
+                                            label="name"
+                                            track-by="id"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'supplier_id', this.isUpdating) }"
+                                            aria-describedby="supplier-edit-error"
+                                            style="flex: 1;"
+                                    />
+                                    <button v-if="canAddSupplier" type="button" class="btn btn-sm btn-outline-primary ml-2" @click="openAddSupplierModal" :title="$t('contracts.form.addNewSupplier')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <span
+                                    v-if="checkIfFieldHasErrors(errors, 'supplier_id', this.isUpdating)"
+                                    id="supplier-edit-error"
+                                    class="error invalid-feedback"
+                                    style="display: block;"
+                                >{{ errors['supplier_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.address') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'address', this.isUpdating) }"
+                                        name="address"
+                                        :placeholder="$t('contracts.form.addressPlaceholder')"
+                                        :value="contract.address"
+                                        @input="updateContractInput"
+                                        aria-describedby="address-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'address')"
+                                    id="address-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['address'][0] }}</span>
+                            </td>
+                        </tr>
+                        <!-- <tr>
+                            <td>Purpose contractor:*</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'purpose_contractor', this.isUpdating) }"
+                                        name="purpose_contractor"
+                                        placeholder="Purpose contractor"
+                                        :value="contract.purpose_contractor"
+                                        @input="updateContractInput"
+                                        aria-describedby="purpose-contractor-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'purpose_contractor', this.isUpdating)"
+                                    id="purpose-contractor-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['purpose_contractor'][0] }}</span>
+                            </td>
+                        </tr> -->
+                        <tr>
+                            <td>{{ $t('contracts.form.startDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="editDeadline_from"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.startDatePlaceholder')"
+                                            name="deadline_from"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_from', this.isUpdating) }"
+                                            aria-describedby="deadline-from-error"
+                                    />
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_from', this.isUpdating)"
+                                            id="deadline-from-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_from'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('contracts.form.dueDate') }}</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="editDeadline_to"
+                                            :config="config"
+                                            class="form-control"
+                                            :placeholder="$t('contracts.form.dueDatePlaceholder')"
+                                            name="deadline_to"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'deadline_to', this.isUpdating) }"
+                                            aria-describedby="deadline-to-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" :title="$t('common.toggle')" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">{{ $t('common.toggle') }}</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'deadline_to', this.isUpdating)"
+                                            id="deadline-to-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['deadline_to'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Notify me before days:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectNotifyDay"
+                                        :options="daysList"
+                                        placeholder="Select days"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'notify_me', this.isUpdating) }"
+                                        aria-describedby="notify-me-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'notify_me', this.isUpdating)"
+                                        id="notify-me-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['notify_me'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="user.roles[0].name == 'Super Admin'">
+                            <td>Company:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editCompany"
+                                        :options="companyList"
+                                        placeholder="Select a company"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isUpdating) }"
+                                        aria-describedby="company-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id')"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Department:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editDepartment"
+                                        :options="departmentList"
+                                        placeholder="Select a department"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isUpdating) }"
+                                        aria-describedby="department-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id', this.isUpdating)"
+                                        id="department-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['department_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Responsible person:*</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editResponsiblePerson"
+                                        :options="responsible_personList"
+                                        placeholder="Select a responsible person"
+                                        label="first_name"
+                                        :custom-label="firstAndLastname"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'responsible_person', this.isUpdating) }"
+                                        aria-describedby="responsible-person-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'responsible_person', this.isUpdating)"
+                                        id="responsible-person-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['responsible_person'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Total price:*</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="editTotalPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'total_price', this.isUpdating) }"
+                                        @keyup.enter="onSubmitEdit"
+                                        aria-describedby="total-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'total_price', this.isUpdating)"
+                                        id="total-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['total_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Unit price:*</td>
+                            <td>
+                                <app-currency-input
+                                        v-model="editUnitPrice"
+                                        :options="priceConfig"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'unit_price', this.isUpdating) }"
+                                        @keyup.enter="onSubmitEdit"
+                                        aria-describedby="unit-price-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'unit_price', this.isUpdating)"
+                                        id="unit-price-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['unit_price'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment date:*</td>
+                            <td>
+                                <div class="input-group">
+                                    <flat-pickr
+                                            v-model="editPaymentDate"
+                                            :config="config"
+                                            class="form-control"
+                                            placeholder="Select payment date"
+                                            name="payment_date"
+                                            :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_date', this.isUpdating) }"
+                                            aria-describedby="payment-date-error"/>
+                                    <div class="input-group-append">
+                                        <app-button class="btn-default" type="button" title="Toggle" data-toggle>
+                                            <i class="fa fa-calendar">
+                                                <span aria-hidden="true" class="sr-only">Toggle</span>
+                                            </i>
+                                        </app-button>
+                                    </div>
+                                    <span
+                                            v-if="checkIfFieldHasErrors(errors, 'payment_date', this.isUpdating)"
+                                            id="payment-date-error"
+                                            class="error invalid-feedback"
+                                    >{{ errors['payment_date'][0] }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Payment terms:*</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'payment_terms', this.isUpdating) }"
+                                        rows="3"
+                                        name="contractor_obligations"
+                                        placeholder="Payment terms"
+                                        @input="updateContractInput"
+                                        :value="contract.payment_terms"
+                                        aria-describedby="payment-terms-error"
+                                        required
+                                ></textarea><span
+                                    v-if="checkIfFieldHasErrors(errors, 'payment_terms', this.isUpdating)"
+                                    id="payment-terms-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['payment_terms'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Contractor obligations:</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'contractor_obligations', this.isUpdating) }"
+                                        rows="3"
+                                        name="contractor_obligations"
+                                        placeholder="Contractor obligations"
+                                        @input="updateContractInput"
+                                        :value="contract.contractor_obligations"
+                                        aria-describedby="contractor-obligations-error"
+                                        
+                                ></textarea><span
+                                    v-if="checkIfFieldHasErrors(errors, 'contractor_obligations', this.isUpdating)"
+                                    id="contractor-obligations-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['contractor_obligations'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Company obligations:</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_obligations', this.isUpdating) }"
+                                        rows="3"
+                                        name="company_obligations"
+                                        placeholder="Company obligations"
+                                        @input="updateContractInput"
+                                        :value="contract.company_obligations"
+                                        aria-describedby="company-obligations-error"
+                                        required
+                                ></textarea><span
+                                    v-if="checkIfFieldHasErrors(errors, 'company_obligations', this.isUpdating)"
+                                    id="company-obligations-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['company_obligations'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="contract.comments">
+                            <td>Comments:</td>
+                            <td v-if="contract.comments.length >= 1" style="max-width: 400px;">
+                                <div v-for="comment in contract.comments" class="mb-1">
+                                    <span v-if="comment.steps !== null"
+                                          class="badge badge-warning">Step {{ comment.steps }}</span>
+                                    <span v-if="comment.canceled == 1" class="badge badge-danger ml-1">Canceled</span>
+                                    <p class="mb-0">{{ comment.name }}</p> - <small>{{ comment.user.first_name }}
+                                    {{ comment.user.last_name }}</small>
+                                </div>
+                            </td>
+                            <td v-else>No comments</td>
+                        </tr>
+                        <tr>
+                            <td>Add a new comment:</td>
+                            <td>
+                                <textarea
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'comment', this.isUpdating) }"
+                                        rows="3"
+                                        name="comment"
+                                        placeholder="Enter a comment ..."
+                                        @input="updateContractInput"
+                                        :value="contract.comment"
+                                ></textarea>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'comment', this.isUpdating)"
+                                        id="comment-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['comment'][0] }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="onSubmitEdit"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>

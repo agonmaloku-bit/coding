@@ -1,0 +1,20 @@
+<button
+        :class="{'btn':true, 'btn-block': block, 'btn-flex': flex}"
+        :type="type"
+        :disabled="isDisabled"
+>
+    <!--    <font-awesome-icon-->
+    <!--        v-if="icon"-->
+    <!--        class="font-awesome-icon mr-2"-->
+    <!--        :icon="['fab', icon]"-->
+    <!--    />-->
+    <i
+            v-if="icon"
+            class="fas pr-2"
+            :class="[ fontawesome_icon, fontawesome_size ]"
+    ></i>
+    <slot/>
+    <div v-if="loading" class="spinner-border ml-2" role="status">
+        <span class="sr-only">{{ $t('common.loading') }}</span>
+    </div>
+</button>

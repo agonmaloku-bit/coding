@@ -1,0 +1,30 @@
+<div @click="closeModal" class="modal fade show showModal" id="modal-add">
+    <div class="modal-dialog" style="max-width: 50%;">
+        <div @click.stop="modalContent" class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                <app-button
+                        @click="closeModal"
+                        type="button"
+                        class="close"
+                        data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </app-button>
+            </div>
+            <div class="modal-body p-0 modalBody">
+                <slot></slot>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <app-button
+                        @click="closeModal"
+                        type="button"
+                        class="btn-default"
+                        data-dismiss="modal"
+                >Close
+                </app-button>
+                <slot name="button"></slot>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,673 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('executiveDirector.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                Dashboard
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('executiveDirector.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('executiveDirector.allDirectors') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canAdd"
+                @click="showAddModal()"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+                style="width: 90px;"
+        >{{ $t('common.addNew') }}
+        </app-button>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+        >{{ $t('common.filter') }}
+        </app-button>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px;"
+                icon="fa-search"
+                icon_size="fa-sm"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table
+                v-if="!isLoadingAll && executive_directorsPaginatedData"
+                class="table table-striped table-borderless"
+        >
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('common.name') }}</th>
+                <th>{{ $t('common.email') }}</th>
+                <th>{{ $t('users.info.department') }}</th>
+                <th>{{ $t('users.info.roles') }}</th>
+                <th style="width: 120px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in executive_directorsPaginatedData.data" :key="index">
+                <td>{{ item.id }}</td>
+                <td>{{ item.first_name }} {{ item.last_name }}</td>
+                <td>{{ item.email }}</td>
+                <td v-if="item.department">{{ item.department.name }}</td>
+                <td v-else>{{ $t('common.noData') }}</td>
+                <td v-if="item.roles">
+            <span v-for="role in item.roles" :key="role.id" class="badge badge-info">
+                      {{ role.name }}
+                    </span>
+                </td>
+                <td v-else>
+                    <span class="badge badge-info">{{ $t('users.noRoles') }}</span>
+                </td>
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(item.id)"
+                            class="svg_icon info"
+                            src="/img/info.svg"
+                    />
+                    <img
+                            v-if="canEdit"
+                            @click="showEditModal(item.id)"
+                            class="svg_icon edit"
+                            src="/img/edit1.svg"
+                    />
+                    <img
+                            v-if="canDelete"
+                            @click="showDeleteModal(item.id)"
+                            class="svg_icon delete"
+                            src="/img/delete.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div v-if="!isLoadingAll && executive_directorsPaginatedData !== null" class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="executive_directorsPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults"
+            />
+        </div>
+        <div v-if="!canShowAll">
+                <p  class="text-black text-center m-5">{{ $t('common.notAuthorized') }}</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <div @click="closeModal" class="modal fade" :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"
+         id="modal-add">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    ><span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th class="col-sm-4">{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.form.firstName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'first_name', this.isCreating) }"
+                                        name="first_name"
+                                        :placeholder="$t('users.form.firstNamePlaceholder')"
+                                        @input="addExecutiveDirectorInputAction"
+                                        aria-describedby="first-name-error"
+                                        required>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'first_name', this.isCreating)"
+                                        id="first-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['first_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.lastName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'last_name', this.isCreating) }"
+                                        name="last_name"
+                                        :placeholder="$t('users.form.lastNamePlaceholder')"
+                                        @input="addExecutiveDirectorInputAction"
+                                        aria-describedby="last-name-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'last_name', this.isCreating)"
+                                    id="last-name-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['last_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.email') }}</td>
+                            <td>
+                                <input
+                                        type="email"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email', this.isCreating) }"
+                                        name="email"
+                                        :placeholder="$t('users.form.emailPlaceholder')"
+                                        @input="addExecutiveDirectorInputAction"
+                                        aria-describedby="email-error"
+                                        required>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'email', this.isCreating)"
+                                        id="email-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['email'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.password') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password', this.isCreating) }"
+                                        name="password"
+                                        :placeholder="$t('users.form.passwordPlaceholder')"
+                                        @input="addExecutiveDirectorInputAction"
+                                        aria-describedby="password-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password', this.isCreating)"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.confirmPassword') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password_confirmation', this.isCreating) }"
+                                        name="password_confirmation"
+                                        :placeholder="$t('users.form.confirmPasswordPlaceholder')"
+                                        @input="addExecutiveDirectorInputAction"
+                                        aria-describedby="password_confirmation-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password_confirmation', this.isCreating)"
+                                        id="password_confirmation-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password_confirmation'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.departments') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selecteNewDepartments"
+                                        :options="departmentList"
+                                        :tag-placeholder="$t('users.form.departmentPlaceholder')"
+                                        :placeholder="$t('users.form.departmentPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isCreating) }"
+                                        aria-describedby="department-id-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id', this.isCreating)"
+                                        id="department-id-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['department_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.roles') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectedRolesForDepartments"
+                                        :options="roleByNameForDepartmentsGetter"
+                                        :tag-placeholder="$t('users.form.selectDeptFirst')"
+                                        :placeholder="$t('users.form.selectDeptFirst')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isCreating) }"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'roles', this.isCreating)"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['roles'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.customPermissions') }}</td>
+                            <td v-if="!customPermissions">
+                  <span
+                          @click="customPermissions = true"
+                          class="small mb-5"
+                  >{{ $t('users.form.addCustomPermissions') }}</span>
+                            </td>
+                            <td v-if="customPermissions">
+                                <VueMultiselect
+                                        v-model="selecteCustomPermissions"
+                                        :options="permissionListGetter"
+                                        :multiple="true"
+                                        :taggable="true"
+                                        :tag-placeholder="$t('users.form.setCustomPermissions')"
+                                        :placeholder="$t('users.form.setCustomPermissions')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                                <span @click="customPermissions = false" class="small">{{ $t('users.form.removeCustomPermissions') }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isCreating"
+                                @click="onSubmitAdd"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isCreating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="executive_director" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th class="col-sm-4">{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.info.id') }}</td>
+                            <td>{{ executive_director.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.firstName') }}</td>
+                            <td>{{ executive_director.first_name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.lastName') }}</td>
+                            <td>{{ executive_director.last_name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.email') }}</td>
+                            <td>{{ executive_director.email }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.department') }}</td>
+                            <td v-if="executive_director.department">{{ executive_director.department.name }}</td>
+                            <td v-else>{{ $t('users.noDepartment') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.roles') }}</td>
+                            <td v-if="executive_director.roles">
+                  <span v-for="role in executive_director.roles" :key="role.id" class="badge badge-info">
+                      {{ role.name }}
+                    </span>
+                            </td>
+                            <td v-else>{{ $t('users.noRoles') }}</td>
+                        </tr>
+                        <tr v-if="executive_director.roles">
+                            <td>{{ $t('users.permissionsByRole') }}</td>
+                            <td v-if="executive_director.roles[0]">
+                                <div
+                                        v-for="role in executive_director.roles"
+                                        :key="role.id">
+                    <span
+                            v-for="permission in role.permissions"
+                            :key="permission.id"
+                            class="badge badge-info mr-1">
+                      {{ permission.name }}
+                    </span>
+                                </div>
+                            </td>
+                            <td v-else-if="executive_director.roles">
+                                <div
+                                        v-for="role in executive_director.roles"
+                                        :key="role.id">
+                                    <span v-if="role.name === 'super_admin'">{{ $t('users.allPermissions') }}</span>
+                                </div>
+                            </td>
+                            <td v-else>{{ $t('users.noPermissions') }}</td>
+                        </tr>
+                        <tr>
+                            <td>Direct permissions:</td>
+                            <td v-if="executive_director.permissions.length >= 1">
+                    <span
+                            v-for="permission in executive_director.permissions"
+                            :key="permission.id"
+                            class="badge badge-info mr-1">
+                      {{ permission.name }}
+                    </span>
+                            </td>
+                            <td v-else>{{ $t('users.noPermissions') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.status') }}</td>
+                            <td><span class="badge badge-success">{{ $t('common.active') }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.createdAt') }}</td>
+                            <td>
+                                {{ new Date(executive_director.created_at).toDateString() }}
+                                {{ new Date(executive_director.created_at).toLocaleTimeString() }}
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                    >{{ $t('common.print') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+            v-if="executive_director"
+            @click="closeModal"
+            class="modal fade"
+            :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }"
+            id="modal-edit"
+    >
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    >
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable"
+                           class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th class="col-sm-4">{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.info.id') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        name="id"
+                                        :value="executive_director.id"
+                                        readonly
+                                ></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.firstName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'first_name', this.isUpdating) }"
+                                        name="first_name"
+                                        :value="executive_director.first_nameNew !== undefined ? executive_director.first_nameNew : executive_director.first_name"
+                                        @input="updateExecutiveDirectorInputAction"
+                                        aria-describedby="first-name-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'first_name', this.isUpdating)"
+                                        id="first-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['first_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.lastName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'last_name', this.isUpdating) }"
+                                        name="last_name"
+                                        :value="executive_director.last_nameNew !== undefined ? executive_director.last_nameNew : executive_director.last_name"
+                                        @input="updateExecutiveDirectorInputAction"
+                                        aria-describedby="last-name-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'last_name', this.isUpdating)"
+                                        id="last-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['last_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.email') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email', this.isUpdating) }"
+                                        name="email"
+                                        :value="executive_director.emailNew !== undefined ? executive_director.emailNew : executive_director.email"
+                                        @input="updateExecutiveDirectorInputAction"
+                                        aria-describedby="email-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'email', this.isUpdating)"
+                                        id="email-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['email'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.password') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password', this.isUpdating) }"
+                                        name="password"
+                                        @input="updateExecutiveDirectorInputAction"
+                                        aria-describedby="password-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password', this.isUpdating)"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.confirmPassword') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password_confirmation', this.isUpdating) }"
+                                        name="password_confirmation"
+                                        @input="updateExecutiveDirectorInputAction"
+                                        aria-describedby="password-confirmation-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password_confirmation', this.isUpdating)"
+                                        id="password-confirmation-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password_confirmation'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.departments') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editDepartmentsForCurrentExecutiveDirector"
+                                        :options="departmentList"
+                                        :tag-placeholder="$t('users.form.departmentPlaceholder')"
+                                        :placeholder="$t('users.form.departmentPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id', this.isUpdating) }"
+                                        aria-describedby="department-id-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id', this.isUpdating)"
+                                        id="department-id-error"
+                                        class="error invalid-feedback">
+                    {{ errors['department_id'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.roles') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editRolesForCurrentExecutiveDirector"
+                                        :options="roleByNameForDepartmentsGetter"
+                                        :tag-placeholder="$t('users.form.selectDeptFirst')"
+                                        placeholder="Type to search or add a role"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'roles', this.isUpdating) }"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'roles', this.isUpdating)"
+                                        id="roles-error"
+                                        class="error invalid-feedback">
+                    {{ errors['roles'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.customPermissions') }}</td>
+                            <td v-if="executive_director.permissions.length === 0 && !customEditPermissions">
+                                <span @click="editCustomPermissionsTrueOrFalse(true)" class="small mb-5">{{ $t('users.form.addCustomPermissions') }}</span>
+                            </td>
+                            <td v-if="executive_director.permissions.length >= 1 || customEditPermissions">
+                                <VueMultiselect
+                                        v-model="editCustomPermissions"
+                                        :options="permissionListGetter"
+                                        :multiple="true"
+                                        :taggable="true"
+                                        :tag-placeholder="$t('users.form.setCustomPermissions')"
+                                        :placeholder="$t('users.form.setCustomPermissions')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                                <!--                  <span @click="editCustomPermissionsTrueOrFalse(false)" class="small">Click here to remove custom permissions</span>-->
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isUpdating"
+                                @click="onSubmitEdit"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isUpdating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>

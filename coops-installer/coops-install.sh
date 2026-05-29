@@ -31,6 +31,8 @@ UI_DIR="/home/coops/coops-ui"
 INSTALL_USER="coops"
 REPO_APP=""
 REPO_UI=""
+REPO_APP_SUBDIR=""
+REPO_UI_SUBDIR=""
 NO_CLONE=0
 SKIP_OS=0
 PHP_VERSION="8.2"
@@ -64,6 +66,8 @@ Flags (install):
   --ui-dir  <path>            UI source dir     [default: $UI_DIR]
   --repo-app <git-url>        Backend repo URL
   --repo-ui  <git-url>        UI repo URL
+    --repo-app-subdir <path>    Backend path inside repo (monorepo installs)
+    --repo-ui-subdir  <path>    UI path inside repo (monorepo installs)
   --no-clone                  Skip git clone (sources already on disk)
   --skip-os                   Skip apt / OS package install
   --php <ver>                 PHP version  [default: $PHP_VERSION]
@@ -79,6 +83,8 @@ while [[ $# -gt 0 ]]; do
         --ui-dir)    UI_DIR="$2"; shift 2 ;;
         --repo-app)  REPO_APP="$2"; shift 2 ;;
         --repo-ui)   REPO_UI="$2"; shift 2 ;;
+        --repo-app-subdir) REPO_APP_SUBDIR="$2"; shift 2 ;;
+        --repo-ui-subdir)  REPO_UI_SUBDIR="$2"; shift 2 ;;
         --no-clone)  NO_CLONE=1; shift ;;
         --skip-os)   SKIP_OS=1; shift ;;
         --php)       PHP_VERSION="$2"; PHP_VERSION_EXPLICIT=1; shift 2 ;;
@@ -118,19 +124,63 @@ do_self_update() {
     log "Updated $0"
 }
 
+checkout_source() {
+    local repo="$1"
+    local dest="$2"
+    local subdir="${3:-}"
+    local label="$4"
+
+    if [[ -z "$subdir" ]]; then
+        if [[ ! -d "$dest/.git" ]]; then
+            log "Cloning $label into $dest ..."
+            rm -rf "$dest"
+            sudo -u "$INSTALL_USER" git clone "$repo" "$dest"
+        else
+            warn "$dest exists, pulling"
+            sudo -u "$INSTALL_USER" git -C "$dest" pull --ff-only
+        fi
+        return
+    fi
+
+    local tmp
+    tmp="$(mktemp -d)"
+    log "Fetching $label from $repo:$subdir ..."
+    chown "$INSTALL_USER":"$INSTALL_USER" "$tmp"
+    sudo -u "$INSTALL_USER" git clone --depth 1 "$repo" "$tmp"
+    [[ -d "$tmp/$subdir" ]] || { rm -rf "$tmp"; fail "Subdirectory not found in repo: $subdir"; }
+
+    mkdir -p "$dest"
+    rsync -a --delete --exclude '.git' "$tmp/$subdir/" "$dest/"
+    chown -R "$INSTALL_USER":"$INSTALL_USER" "$dest"
+    printf '%s\n' "$repo" > "$dest/.coops-source-url"
+    printf '%s\n' "$subdir" > "$dest/.coops-source-subdir"
+    chown "$INSTALL_USER":"$INSTALL_USER" "$dest/.coops-source-url" "$dest/.coops-source-subdir"
+    rm -rf "$tmp"
+}
+
 # -------- subcommand: update -------------------------------------------------
 do_update() {
     require_root
-    [[ -d "$APP_DIR/.git" ]] || fail "$APP_DIR is not a git checkout"
-    [[ -d "$UI_DIR/.git"  ]] || fail "$UI_DIR is not a git checkout"
 
     log "Pulling backend..."
-    sudo -u "$INSTALL_USER" git -C "$APP_DIR" pull --ff-only
+    if [[ -d "$APP_DIR/.git" ]]; then
+        sudo -u "$INSTALL_USER" git -C "$APP_DIR" pull --ff-only
+    elif [[ -f "$APP_DIR/.coops-source-url" && -f "$APP_DIR/.coops-source-subdir" ]]; then
+        checkout_source "$(cat "$APP_DIR/.coops-source-url")" "$APP_DIR" "$(cat "$APP_DIR/.coops-source-subdir")" "backend"
+    else
+        fail "$APP_DIR is not a git checkout and has no CoOPS source metadata"
+    fi
     sudo -u "$INSTALL_USER" -E bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
     log "Rebuilding UI..."
-    sudo -u "$INSTALL_USER" git -C "$UI_DIR" pull --ff-only
+    if [[ -d "$UI_DIR/.git" ]]; then
+        sudo -u "$INSTALL_USER" git -C "$UI_DIR" pull --ff-only
+    elif [[ -f "$UI_DIR/.coops-source-url" && -f "$UI_DIR/.coops-source-subdir" ]]; then
+        checkout_source "$(cat "$UI_DIR/.coops-source-url")" "$UI_DIR" "$(cat "$UI_DIR/.coops-source-subdir")" "UI"
+    else
+        fail "$UI_DIR is not a git checkout and has no CoOPS source metadata"
+    fi
     sudo -u "$INSTALL_USER" -E bash -c "cd '$UI_DIR' && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/public"
@@ -268,20 +318,8 @@ do_install() {
         mkdir -p "$(dirname "$APP_DIR")" "$(dirname "$UI_DIR")"
         chown -R "$INSTALL_USER":"$INSTALL_USER" "$(dirname "$APP_DIR")" "$(dirname "$UI_DIR")"
 
-        if [[ ! -d "$APP_DIR/.git" ]]; then
-            log "Cloning backend into $APP_DIR ..."
-            sudo -u "$INSTALL_USER" git clone "$REPO_APP" "$APP_DIR"
-        else
-            warn "$APP_DIR exists, pulling"
-            sudo -u "$INSTALL_USER" git -C "$APP_DIR" pull --ff-only
-        fi
-        if [[ ! -d "$UI_DIR/.git" ]]; then
-            log "Cloning UI into $UI_DIR ..."
-            sudo -u "$INSTALL_USER" git clone "$REPO_UI" "$UI_DIR"
-        else
-            warn "$UI_DIR exists, pulling"
-            sudo -u "$INSTALL_USER" git -C "$UI_DIR" pull --ff-only
-        fi
+        checkout_source "$REPO_APP" "$APP_DIR" "$REPO_APP_SUBDIR" "backend"
+        checkout_source "$REPO_UI" "$UI_DIR" "$REPO_UI_SUBDIR" "UI"
     fi
     [[ -d "$APP_DIR" ]] || fail "Backend directory missing: $APP_DIR"
     [[ -d "$UI_DIR"  ]] || fail "UI directory missing: $UI_DIR"

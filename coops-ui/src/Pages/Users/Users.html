@@ -1,0 +1,725 @@
+<content-header>
+    <template #title>
+        <h1 class="m-0">{{ $t('users.title') }}</h1>
+    </template>
+    <template #breadcrumb>
+        <breadcrumb-item>
+            <router-link to="/platform">
+                Dashboard
+            </router-link>
+        </breadcrumb-item>
+        <breadcrumb-item :active="true">
+            {{ $t('users.title') }}
+        </breadcrumb-item>
+    </template>
+</content-header>
+
+<page-content>
+    <template #cardTitle>
+        {{ $t('users.allUsers') }}
+    </template>
+    <template #cardTools>
+        <app-button
+                v-if="canAdd"
+                @click="showAddModal()"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+                style="width: 90px;"
+        >{{ $t('common.addNew') }}
+        </app-button>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3 mr-2"
+        >{{ $t('common.filter') }}
+        </app-button>
+        <app-button
+                v-if="canShowAll"
+                type="button"
+                class="btn-outline-primary btn-sm pl-3 pr-3"
+                style="min-width: 250px;"
+                icon="fa-search"
+                icon_size="fa-sm"
+        >{{ $t('common.search') }}
+        </app-button>
+    </template>
+    <template #cardBody>
+        <app-loader v-if="isLoadingAll && canShowAll"></app-loader>
+        <table
+                v-if="!isLoadingAll && usersPaginatedData !== null"
+                class="table table-striped table-borderless"
+        >
+            <thead>
+            <tr>
+                <th style="width: 10px">#</th>
+                <th>{{ $t('common.name') }}</th>
+                <th>{{ $t('common.email') }}</th>
+                <th>{{ $t('users.info.company') }}</th>
+                <th>{{ $t('users.info.department') }}</th>
+                <th>{{ $t('users.info.roles') }}</th>
+                <th style="width: 120px">{{ $t('common.more') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="(item, index) in usersPaginatedData.data" :key="index">
+                <td>{{ ((query.page*10)-10)+(index+1) }}</td>
+                <td>{{ item.first_name }} {{ item.last_name }}</td>
+                <td>{{ item.email }}</td>
+                <th v-if="item.department">
+                    <div v-if="item.department.company">
+                        {{ item.department.company.name }}
+                    </div>
+                    <div v-else>{{ $t('users.noCompany') }}</div>
+                </th>
+                <td v-else>{{ $t('users.noCompany') }}</td>
+                <td v-if="item.department">{{ item.department.name }}</td>
+                <td v-else>{{ $t('users.noDepartment') }}</td>
+                <td v-if="item.roles">
+            <span v-for="role in item.roles" :key="role.id" class="badge badge-info">
+                      {{ role.name }}
+                    </span>
+                </td>
+                <td v-else>
+                    <span class="badge badge-info">{{ $t('users.noRoles') }}</span>
+                </td>
+                <td class="more_actions">
+                    <img
+                            v-if="canShow"
+                            @click="showInfoModal(item.id)"
+                            class="svg_icon info"
+                            src="/img/info.svg"
+                    />
+                    <img
+                            v-if="canEdit"
+                            @click="showEditModal(item.id)"
+                            class="svg_icon edit"
+                            src="/img/edit1.svg"
+                    />
+                    <img
+                            v-if="canDelete"
+                            @click="showDeleteModal(item.id)"
+                            class="svg_icon delete"
+                            src="/img/delete.svg"
+                    />
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div v-if="!isLoadingAll && usersPaginatedData !== null" class="vertical-center mt-2 mb-2 ml-3">
+            <v-pagination
+                    v-model="query.page"
+                    :pages="usersPaginatedData.pagination.total_pages"
+                    :range-size="2"
+                    active-color="#DCEDFF"
+                    @update:modelValue="getResults"
+            />
+        </div>
+        <div v-if="!canShowAll">
+            <p class="text-black text-center m-5">You do not have the required authorization.</p>
+        </div>
+    </template>
+</page-content>
+
+<teleport to="body">
+    <div @click="closeModal" class="modal fade" :class="{ 'show': modalAddActive, 'showAddModal': modalAddActive }"
+         id="modal-add">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    ><span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable" class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.form.firstName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'first_name') }"
+                                        name="first_name"
+                                        :placeholder="$t('users.form.firstNamePlaceholder')"
+                                        @input="addUserInputAction"
+                                        :value="newUser.first_name"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="first-name-error"
+                                        required>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'first_name')"
+                                        id="first-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['first_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.lastName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'last_name') }"
+                                        name="last_name"
+                                        :placeholder="$t('users.form.lastNamePlaceholder')"
+                                        @input="addUserInputAction"
+                                        :value="newUser.last_name"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="last-name-error"
+                                        required
+                                ><span
+                                    v-if="checkIfFieldHasErrors(errors, 'last_name')"
+                                    id="last-name-error"
+                                    class="error invalid-feedback"
+                            >{{ errors['last_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.email') }}</td>
+                            <td>
+                                <input
+                                        type="email"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email') }"
+                                        name="email"
+                                        :placeholder="$t('users.form.emailPlaceholder')"
+                                        @input="addUserInputAction"
+                                        :value="newUser.email"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="email-error"
+                                        required>
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'email')"
+                                        id="email-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['email'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.password') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password') }"
+                                        name="password"
+                                        :placeholder="$t('users.form.passwordPlaceholder')"
+                                        @input="addUserInputAction"
+                                        :value="newUser.password"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="password-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password')"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.confirmPassword') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password_confirmation') }"
+                                        name="password_confirmation"
+                                        :placeholder="$t('users.form.confirmPasswordPlaceholder')"
+                                        @input="addUserInputAction"
+                                        :value="newUser.password_confirmation"
+                                        @keyup.enter="onSubmitAdd"
+                                        aria-describedby="password_confirmation-error"
+                                        required
+                                >
+                                <span v-if="checkIfFieldHasErrors(errors, 'password_confirmation')" id="password_confirmation-error"
+                                      class="error invalid-feedback">
+                    {{ errors['password_confirmation'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.company') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectCompany"
+                                        :options="companyList"
+                                        :placeholder="$t('users.form.companyPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isCreating) }"
+                                        aria-describedby="company-error"
+                                        @keyup.enter="onSubmitAdd"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isCreating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.departments') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selecteNewDepartments"
+                                        :options="departmentList"
+                                        :tag-placeholder="$t('users.form.departmentPlaceholder')"
+                                        :placeholder="$t('users.form.departmentPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id') }"
+                                        aria-describedby="department-id-error"
+                                        @keyup.enter="onSubmitAdd"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id')"
+                                        id="department-id-error"
+                                        class="error invalid-feedback">
+                    {{ errors['department_id'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.roles') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="selectedRoles"
+                                        :options="roleList"
+                                        :tag-placeholder="$t('users.form.selectDeptFirst')"
+                                        :placeholder="$t('users.form.selectDeptFirst')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id') }"
+                                        @keyup.enter="onSubmitAdd"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'roles')"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['roles'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.customPermissions') }}</td>
+                            <td v-if="!customPermissions"><span @click="customPermissions = true" class="small mb-5">{{ $t('users.form.addCustomPermissions') }}</span>
+                            </td>
+                            <td v-if="customPermissions">
+                                <VueMultiselect
+                                        v-model="selecteCustomPermissions"
+                                        :options="permissionListGetter"
+                                        :multiple="true"
+                                        :taggable="true"
+                                        :tag-placeholder="$t('users.form.setCustomPermissions')"
+                                        :placeholder="$t('users.form.setCustomPermissions')"
+                                        label="name"
+                                        track-by="id"
+                                        @keyup.enter="onSubmitAdd"
+                                />
+                                <span @click="customPermissions = false" class="small">{{ $t('users.form.removeCustomPermissions') }}</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isCreating"
+                                @click="onSubmitAdd"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isCreating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="user" @click="closeModal" class="modal fade"
+         :class="{ 'show': modalInfoActive, 'showInfoModal': modalInfoActive }" id="modal-info">
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <button @click="closeModal" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading" id="printTable" class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.info.id') }}</td>
+                            <td>{{ user.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.firstName') }}</td>
+                            <td>{{ user.first_name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.lastName') }}</td>
+                            <td>{{ user.last_name }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.email') }}</td>
+                            <td>{{ user.email }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.company') }}</td>
+                            <td v-if="user.company">{{ user.company.name }}</td>
+                            <td v-else>{{ $t('users.noCompany') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.department') }}</td>
+                            <td v-if="user.department">{{ user.department.name }}</td>
+                            <td v-else>{{ $t('users.noDepartment') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.roles') }}</td>
+                            <td v-if="user.roles">
+                  <span v-for="role in user.roles" :key="role.id" class="badge badge-info">
+                      {{ role.name }}
+                    </span>
+                            </td>
+                            <td v-else>{{ $t('users.noRoles') }}</td>
+                        </tr>
+                        <tr v-if="user.roles">
+                            <td>{{ $t('users.permissionsByRole') }}</td>
+                            <td v-if="user.roles[0]">
+                                <div
+                                        v-for="role in user.roles"
+                                        :key="role.id">
+                    <span
+                            v-for="permission in role.permissions"
+                            :key="permission.id"
+                            class="badge badge-info mr-1">
+                      {{ permission.name }}
+                    </span>
+                                </div>
+                            </td>
+                            <td v-else-if="user.roles">
+                                <div
+                                        v-for="role in user.roles"
+                                        :key="role.id">
+                                    <span v-if="role.name === 'super_admin'">{{ $t('users.allPermissions') }}</span>
+                                </div>
+                            </td>
+                            <td v-else>{{ $t('users.noPermissions') }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.info.status') }}</td>
+                            <td><span class="badge badge-success">{{ $t('common.active') }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.createdAt') }}</td>
+                            <td>{{ new Date(user.created_at).toLocaleString() }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('common.lastModifiedAt') }}</td>
+                            <td>{{ new Date(user.updated_at).toLocaleString() }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                    >{{ $t('common.print') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+            v-if="modalEditActive"
+            @click="closeModal"
+            class="modal fade"
+            :class="{ 'show': modalEditActive, 'showEditModal': modalEditActive }"
+            id="modal-edit"
+    >
+        <div class="modal-dialog" style="max-width: 50%;">
+            <div @click.stop="modalContent" class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">{{ this.appTitle }} • {{ this.appDescription }}</h4>
+                    <app-button
+                            @click="closeModal"
+                            type="button"
+                            class="close"
+                            data-dismiss="modal"
+                            aria-label="Close"
+                    >
+                        <span aria-hidden="true">&times;</span>
+                    </app-button>
+                </div>
+                <div class="modal-body p-0" style="max-height: calc(100vh - 220px); overflow-y: auto;">
+                    <table v-if="!isLoading && user" id="printTable" class="table table-hover table-borderless table-striped p-0">
+                        <thead>
+                        <tr>
+                            <th>{{ $t('common.col') }}</th>
+                            <th>{{ $t('common.description') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ $t('users.info.id') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        name="id"
+                                        :value="user.id"
+                                        readonly
+                                ></td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.firstName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'first_name') }"
+                                        name="first_name"
+                                        :value="user.first_nameNew !== undefined ? user.first_nameNew : user.first_name"
+                                        @input="updateUserInputAction"
+                                        @keyup.enter="onSubmitEdit"
+                                        aria-describedby="first-name-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'first_name')"
+                                        id="first-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['first_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.lastName') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'last_name') }"
+                                        name="last_name"
+                                        :value="user.last_nameNew !== undefined ? user.last_nameNew : user.last_name"
+                                        @input="updateUserInputAction"
+                                        @keyup.enter="onSubmitEdit"
+                                        aria-describedby="last-name-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'last_name')"
+                                        id="last-name-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['last_name'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.email') }}</td>
+                            <td>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'email') }"
+                                        name="email"
+                                        :value="user.emailNew !== undefined ? user.emailNew : user.email"
+                                        @input="updateUserInputAction"
+                                        @keyup.enter="onSubmitEdit"
+                                        aria-describedby="email-error"
+                                        required
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'email')"
+                                        id="email-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['email'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.password') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password') }"
+                                        name="password"
+                                        @input="updateUserInputAction"
+                                        @keyup.enter="onSubmitEdit"
+                                        :placeholder="$t('users.form.passwordChangePlaceholder')"
+                                        aria-describedby="password-error"
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password')"
+                                        id="password-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.confirmPassword') }}</td>
+                            <td>
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'password_confirmation') }"
+                                        name="password_confirmation"
+                                        @input="updateUserInputAction"
+                                        @keyup.enter="onSubmitEdit"
+                                        :placeholder="$t('users.form.confirmPasswordChangePlaceholder')"
+                                        aria-describedby="password-confirmation-error"
+                                >
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'password_confirmation')"
+                                        id="password-confirmation-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['password_confirmation'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.company') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editCompany"
+                                        :options="companyList"
+                                        :placeholder="$t('users.form.companyPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'company_id', this.isUpdating) }"
+                                        aria-describedby="company-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'company_id', this.isUpdating)"
+                                        id="company-error"
+                                        class="error invalid-feedback"
+                                >{{ errors['company_id'][0] }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.departments') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editDepartmentsForCurrentUser"
+                                        :options="departmentList"
+                                        :tag-placeholder="$t('users.form.departmentPlaceholder')"
+                                        :placeholder="$t('users.form.departmentPlaceholder')"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'department_id') }"
+                                        aria-describedby="department-id-error"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'department_id')"
+                                        id="department-id-error"
+                                        class="error invalid-feedback">
+                    {{ errors['department_id'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.roles') }}</td>
+                            <td>
+                                <VueMultiselect
+                                        v-model="editRolesForCurrentUser"
+                                        :options="roleList"
+                                        :tag-placeholder="$t('users.form.selectDeptFirst')"
+                                        placeholder="Type to search or add a role"
+                                        label="name"
+                                        track-by="id"
+                                        :class="{ 'is-invalid': checkIfFieldHasErrors(errors, 'roles') }"
+                                />
+                                <span
+                                        v-if="checkIfFieldHasErrors(errors, 'roles')"
+                                        id="roles-error"
+                                        class="error invalid-feedback">
+                    {{ errors['roles'][0] }}
+                  </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{ $t('users.form.customPermissions') }}</td>
+                            <td v-if="user.permissions.length === 0 && !customEditPermissions">
+                                <span @click="editCustomPermissionsTrueOrFalse(true)" class="small mb-5">{{ $t('users.form.addCustomPermissions') }}</span>
+                            </td>
+                            <td v-if="user.permissions.length >= 1 || customEditPermissions">
+                                <VueMultiselect
+                                        v-model="editCustomPermissions"
+                                        :options="permissionListGetter"
+                                        :multiple="true"
+                                        :taggable="true"
+                                        :tag-placeholder="$t('users.form.setCustomPermissions')"
+                                        :placeholder="$t('users.form.setCustomPermissions')"
+                                        label="name"
+                                        track-by="id"
+                                />
+                                <!--                  <span @click="editCustomPermissionsTrueOrFalse(false)" class="small">Click here to remove custom permissions</span>-->
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <app-loader v-if="isLoading"></app-loader>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <app-button @click="closeModal"
+                                type="button"
+                                class="btn-default"
+                                data-dismiss="modal"
+                    >{{ $t('common.close') }}
+                    </app-button>
+                    <app-button v-if="!isUpdating"
+                                @click="onSubmitEdit"
+                                type="button"
+                                class="btn-primary"
+                    >{{ $t('common.save') }}
+                    </app-button>
+                    <app-button v-if="isUpdating"
+                                class="btn-primary"
+                                type="button" disabled>
+              <span class="spinner-border spinner-border-sm"
+                    role="status" aria-hidden="true"></span>
+                        {{ $t('common.saving') }}
+                    </app-button>
+                </div>
+            </div>
+        </div>
+    </div>
+</teleport>
