@@ -134,10 +134,10 @@ checkout_source() {
         if [[ ! -d "$dest/.git" ]]; then
             log "Cloning $label into $dest ..."
             rm -rf "$dest"
-            sudo -u "$INSTALL_USER" git clone "$repo" "$dest"
+            sudo -H -u "$INSTALL_USER" git clone "$repo" "$dest"
         else
             warn "$dest exists, pulling"
-            sudo -u "$INSTALL_USER" git -C "$dest" pull --ff-only
+            sudo -H -u "$INSTALL_USER" git -C "$dest" pull --ff-only
         fi
         return
     fi
@@ -146,7 +146,7 @@ checkout_source() {
     tmp="$(mktemp -d)"
     log "Fetching $label from $repo:$subdir ..."
     chown "$INSTALL_USER":"$INSTALL_USER" "$tmp"
-    sudo -u "$INSTALL_USER" git clone --depth 1 "$repo" "$tmp"
+    sudo -H -u "$INSTALL_USER" git clone --depth 1 "$repo" "$tmp"
     [[ -d "$tmp/$subdir" ]] || { rm -rf "$tmp"; fail "Subdirectory not found in repo: $subdir"; }
 
     mkdir -p "$dest"
@@ -164,24 +164,24 @@ do_update() {
 
     log "Pulling backend..."
     if [[ -d "$APP_DIR/.git" ]]; then
-        sudo -u "$INSTALL_USER" git -C "$APP_DIR" pull --ff-only
+        sudo -H -u "$INSTALL_USER" git -C "$APP_DIR" pull --ff-only
     elif [[ -f "$APP_DIR/.coops-source-url" && -f "$APP_DIR/.coops-source-subdir" ]]; then
         checkout_source "$(cat "$APP_DIR/.coops-source-url")" "$APP_DIR" "$(cat "$APP_DIR/.coops-source-subdir")" "backend"
     else
         fail "$APP_DIR is not a git checkout and has no CoOPS source metadata"
     fi
-    sudo -u "$INSTALL_USER" -E bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
     log "Rebuilding UI..."
     if [[ -d "$UI_DIR/.git" ]]; then
-        sudo -u "$INSTALL_USER" git -C "$UI_DIR" pull --ff-only
+        sudo -H -u "$INSTALL_USER" git -C "$UI_DIR" pull --ff-only
     elif [[ -f "$UI_DIR/.coops-source-url" && -f "$UI_DIR/.coops-source-subdir" ]]; then
         checkout_source "$(cat "$UI_DIR/.coops-source-url")" "$UI_DIR" "$(cat "$UI_DIR/.coops-source-subdir")" "UI"
     else
         fail "$UI_DIR is not a git checkout and has no CoOPS source metadata"
     fi
-    sudo -u "$INSTALL_USER" -E bash -c "cd '$UI_DIR' && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/public"
 
@@ -326,7 +326,7 @@ do_install() {
 
     # 4. backend deps
     log "Installing backend composer dependencies..."
-    sudo -u "$INSTALL_USER" -E bash -c "cd '$APP_DIR' && composer install --no-interaction --prefer-dist --optimize-autoloader"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --prefer-dist --optimize-autoloader"
 
     log "Preparing storage / bootstrap cache..."
     mkdir -p "$APP_DIR/storage/framework/"{cache,sessions,views} "$APP_DIR/storage/logs" "$APP_DIR/bootstrap/cache"
@@ -342,7 +342,7 @@ do_install() {
 
     # 5. UI build
     log "Building UI..."
-    sudo -u "$INSTALL_USER" -E bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci --legacy-peer-deps || npm install --legacy-peer-deps) && NODE_OPTIONS=--openssl-legacy-provider npm run build"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci --legacy-peer-deps || npm install --legacy-peer-deps) && NODE_OPTIONS=--openssl-legacy-provider npm run build"
     mkdir -p "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
 
