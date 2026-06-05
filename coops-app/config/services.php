@@ -30,4 +30,6 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'arbk_scraper_url' => env('ARBK_SCRAPER_URL', 'http://127.0.0.1:8181'),
+
 ];

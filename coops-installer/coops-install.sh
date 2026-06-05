@@ -28,12 +28,16 @@ set -euo pipefail
 DOMAIN=""
 APP_DIR="/home/coops/coops-app"
 UI_DIR="/home/coops/coops-ui"
+ARBK_DIR="/home/arbk-scraper"
 INSTALL_USER="coops"
 REPO_APP=""
 REPO_UI=""
+REPO_ARBK=""
 REPO_APP_SUBDIR=""
 REPO_UI_SUBDIR=""
+REPO_ARBK_SUBDIR=""
 NO_CLONE=0
+SKIP_ARBK=0
 SKIP_OS=0
 PHP_VERSION="8.3"
 PHP_VERSION_EXPLICIT=0
@@ -43,6 +47,8 @@ SELF_URL=""
 DB_NAME="coops"
 DB_USER="coops"
 DB_PASS=""
+ARBK_SCRAPER_URL="http://127.0.0.1:8181"
+CAPSOLVER_API_KEY="${CAPSOLVER_API_KEY:-}"
 
 SUBCMD="${1:-help}"
 [[ $# -gt 0 ]] && shift || true
@@ -67,16 +73,22 @@ Flags (install):
   --domain <host>             Hostname for the nginx vhost (required)
   --app-dir <path>            Backend dir       [default: $APP_DIR]
   --ui-dir  <path>            UI source dir     [default: $UI_DIR]
+  --arbk-dir <path>           ARBK scraper dir  [default: $ARBK_DIR]
   --repo-app <git-url>        Backend repo URL
   --repo-ui  <git-url>        UI repo URL
-    --repo-app-subdir <path>    Backend path inside repo (monorepo installs)
-    --repo-ui-subdir  <path>    UI path inside repo (monorepo installs)
+  --repo-arbk <git-url>       ARBK scraper repo URL [default: --repo-app]
+  --repo-app-subdir <path>    Backend path inside repo (monorepo installs)
+  --repo-ui-subdir  <path>    UI path inside repo (monorepo installs)
+  --repo-arbk-subdir <path>   ARBK path inside repo [default: coops-arbk-scraper]
   --no-clone                  Skip git clone (sources already on disk)
+  --skip-arbk                 Do not install/start Dockerized ARBK scraper
   --skip-os                   Skip apt / OS package install
-    --php <ver>                 PHP version  [default: $PHP_VERSION]
-    --db-name <name>            Database name [default: $DB_NAME]
-    --db-user <user>            Database user [default: $DB_USER]
-    --db-pass <pass>            Database password [default: generated]
+  --php <ver>                 PHP version  [default: $PHP_VERSION]
+  --db-name <name>            Database name [default: $DB_NAME]
+  --db-user <user>            Database user [default: $DB_USER]
+  --db-pass <pass>            Database password [default: generated]
+  --arbk-url <url>            Backend ARBK scraper URL [default: $ARBK_SCRAPER_URL]
+  --capsolver-api-key <key>   Optional ARBK Turnstile solving API key
   --self-url <url>            Source URL for 'self-update' subcommand
 EOF
 }
@@ -87,16 +99,22 @@ while [[ $# -gt 0 ]]; do
         --domain)    DOMAIN="$2"; shift 2 ;;
         --app-dir)   APP_DIR="$2"; shift 2 ;;
         --ui-dir)    UI_DIR="$2"; shift 2 ;;
+        --arbk-dir)  ARBK_DIR="$2"; shift 2 ;;
         --repo-app)  REPO_APP="$2"; shift 2 ;;
         --repo-ui)   REPO_UI="$2"; shift 2 ;;
+        --repo-arbk) REPO_ARBK="$2"; shift 2 ;;
         --repo-app-subdir) REPO_APP_SUBDIR="$2"; shift 2 ;;
         --repo-ui-subdir)  REPO_UI_SUBDIR="$2"; shift 2 ;;
+        --repo-arbk-subdir) REPO_ARBK_SUBDIR="$2"; shift 2 ;;
         --no-clone)  NO_CLONE=1; shift ;;
+        --skip-arbk) SKIP_ARBK=1; shift ;;
         --skip-os)   SKIP_OS=1; shift ;;
         --php)       PHP_VERSION="$2"; PHP_VERSION_EXPLICIT=1; shift 2 ;;
         --db-name)   DB_NAME="$2"; shift 2 ;;
         --db-user)   DB_USER="$2"; shift 2 ;;
         --db-pass)   DB_PASS="$2"; shift 2 ;;
+        --arbk-url)  ARBK_SCRAPER_URL="$2"; shift 2 ;;
+        --capsolver-api-key) CAPSOLVER_API_KEY="$2"; shift 2 ;;
         --self-url)  SELF_URL="$2"; shift 2 ;;
         -h|--help)   usage; exit 0 ;;
         *) fail "Unknown option: $1" ;;
@@ -169,6 +187,75 @@ prepare_passport_keys() {
     fi
 }
 
+docker_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        echo "docker-compose"
+    else
+        return 1
+    fi
+}
+
+arbk_container_running() {
+    command -v docker >/dev/null 2>&1 || return 1
+    [[ "$(docker inspect -f '{{.State.Running}}' arbk-scraper 2>/dev/null || true)" == "true" ]]
+}
+
+arbk_health_ok() {
+    curl -fsS --max-time 15 "$ARBK_SCRAPER_URL/health" >/dev/null 2>&1
+}
+
+install_arbk_scraper() {
+    [[ $SKIP_ARBK -eq 1 ]] && { warn "Skipping ARBK scraper install."; return 0; }
+
+    if arbk_container_running && arbk_health_ok; then
+        log "Existing ARBK scraper is already running and healthy at $ARBK_SCRAPER_URL."
+        return 0
+    fi
+
+    if [[ -z "$REPO_ARBK" ]]; then
+        REPO_ARBK="$REPO_APP"
+    fi
+    if [[ -z "$REPO_ARBK_SUBDIR" && -n "$REPO_ARBK" ]]; then
+        REPO_ARBK_SUBDIR="coops-arbk-scraper"
+    fi
+
+    if [[ $NO_CLONE -eq 0 && -n "$REPO_ARBK" ]]; then
+        checkout_source "$REPO_ARBK" "$ARBK_DIR" "$REPO_ARBK_SUBDIR" "ARBK scraper"
+    elif [[ $NO_CLONE -eq 0 && -d "$ARBK_DIR/.git" ]]; then
+        warn "$ARBK_DIR exists, pulling"
+        sudo -H -u "$INSTALL_USER" git -C "$ARBK_DIR" pull --ff-only
+    elif [[ $NO_CLONE -eq 0 && -f "$ARBK_DIR/.coops-source-url" && -f "$ARBK_DIR/.coops-source-subdir" ]]; then
+        checkout_source "$(cat "$ARBK_DIR/.coops-source-url")" "$ARBK_DIR" "$(cat "$ARBK_DIR/.coops-source-subdir")" "ARBK scraper"
+    elif [[ $NO_CLONE -eq 0 ]]; then
+        fail "--repo-arbk is required for ARBK scraper install (or pass --skip-arbk)"
+    fi
+
+    [[ -f "$ARBK_DIR/docker-compose.yml" ]] || fail "ARBK docker-compose.yml missing: $ARBK_DIR/docker-compose.yml"
+
+    cat > "$ARBK_DIR/.env" <<EOF
+CAPSOLVER_API_KEY=$CAPSOLVER_API_KEY
+EOF
+    chown "$INSTALL_USER":"$INSTALL_USER" "$ARBK_DIR/.env"
+    chmod 600 "$ARBK_DIR/.env"
+
+    systemctl enable --now docker
+    usermod -aG docker "$INSTALL_USER" || true
+
+    local compose_cmd
+    compose_cmd="$(docker_compose_cmd)" || fail "Docker Compose is not available after Docker install"
+
+    log "Starting ARBK scraper with Docker Compose..."
+    (cd "$ARBK_DIR" && $compose_cmd up -d --build)
+
+    if curl -fsS --max-time 15 "$ARBK_SCRAPER_URL/health" >/dev/null; then
+        log "ARBK scraper is healthy at $ARBK_SCRAPER_URL."
+    else
+        warn "ARBK scraper container started, but health check failed at $ARBK_SCRAPER_URL/health. Check: cd $ARBK_DIR && $compose_cmd logs"
+    fi
+}
+
 # -------- subcommand: status -------------------------------------------------
 do_status() {
     log "PHP:        $(php -v 2>/dev/null | head -1 || echo 'not installed')"
@@ -177,10 +264,15 @@ do_status() {
     log "Nginx:      $(nginx -v 2>&1 || echo 'not installed')"
     log "MariaDB:    $(mariadb --version 2>/dev/null || mysql --version 2>/dev/null || echo 'not installed')"
     log "Ghostscript:$(gs --version 2>/dev/null || echo 'not installed')"
+    log "Docker:     $(docker --version 2>/dev/null || echo 'not installed')"
     for s in nginx php${PHP_VERSION}-fpm mariadb; do
         printf '\033[1;34m[coops]\033[0m %-20s %s\n' "$s" \
             "$(systemctl is-active "$s" 2>/dev/null || echo 'inactive')"
     done
+    if command -v docker >/dev/null 2>&1; then
+        printf '\033[1;34m[coops]\033[0m %-20s %s\n' "arbk-scraper" \
+            "$(docker inspect -f '{{.State.Status}}' arbk-scraper 2>/dev/null || echo 'not installed')"
+    fi
 }
 
 # -------- subcommand: self-update -------------------------------------------
@@ -261,6 +353,10 @@ do_update() {
     log "Reloading php-fpm..."
     systemctl reload "php${PHP_VERSION}-fpm" || systemctl restart "php${PHP_VERSION}-fpm"
 
+    if [[ $SKIP_ARBK -eq 0 && -d "$ARBK_DIR" ]]; then
+        install_arbk_scraper
+    fi
+
     log "Update done."
 }
 
@@ -274,15 +370,34 @@ do_install() {
         log "Updating apt and installing base packages..."
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -y
+
+        if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
+            add-apt-repository -y universe >/dev/null 2>&1 || true
+            apt-get update -y
+        fi
+
         apt-get install -y --no-install-recommends \
             ca-certificates curl wget gnupg lsb-release software-properties-common \
             git unzip zip rsync sudo \
             nginx mariadb-server \
             ghostscript imagemagick ufw
 
-        if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
-            add-apt-repository -y universe >/dev/null 2>&1 || true
-            apt-get update -y
+        if [[ $SKIP_ARBK -eq 0 ]]; then
+            if command -v docker >/dev/null 2>&1; then
+                log "Docker is already installed."
+            else
+                apt-get install -y --no-install-recommends docker.io
+            fi
+
+            if docker_compose_cmd >/dev/null 2>&1; then
+                log "Docker Compose is already installed."
+            elif apt_package_available docker-compose-plugin; then
+                apt-get install -y --no-install-recommends docker-compose-plugin
+            elif apt_package_available docker-compose; then
+                apt-get install -y --no-install-recommends docker-compose
+            else
+                warn "Docker Compose package is not available from apt; ARBK scraper startup may fail."
+            fi
         fi
 
         # Pick the best available PHP version:
@@ -401,6 +516,8 @@ do_install() {
     chgrp "$INSTALL_USER" "$APP_DIR" || true
     chmod 775 "$APP_DIR" || true
 
+    install_arbk_scraper
+
     provision_database
 
     # 4. backend deps
@@ -431,6 +548,9 @@ do_install() {
         "username": "$DB_USER",
         "password": "$DB_PASS",
         "create": false
+    },
+    "arbk": {
+        "url": "$ARBK_SCRAPER_URL"
     }
 }
 JSON

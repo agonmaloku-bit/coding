@@ -206,12 +206,15 @@ if ($post) {
                 $log = [];
                 // 1. Write .env
                 $db = $data['db']; $app = $data['app']; $mail = $data['mail'];
+                $installDefaults = installDefaults();
+                $arbkUrl = $data['arbk']['url'] ?? $installDefaults['arbk']['url'] ?? 'http://127.0.0.1:8181';
                 envSet('APP_NAME',     $app['name']);
                 envSet('APP_ENV',      $app['env']);
                 envSet('APP_DEBUG',    $app['debug']);
                 envSet('APP_URL',      $app['url']);
                 envSet('APP_LOCALE',   $app['locale']);
                 envSet('COMPANY_NAME', $app['company_name'] ?? $app['name']);
+                envSet('ARBK_SCRAPER_URL', $arbkUrl);
                 envSet('LOG_CHANNEL',  'stack');
                 envSet('DB_CONNECTION','mysql');
                 envSet('DB_HOST',      $db['host']);

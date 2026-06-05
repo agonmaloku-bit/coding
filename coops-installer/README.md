@@ -103,23 +103,29 @@ sudo ./coops-install.sh help
 | PHP | installs **php8.3-fpm** + ext-mysql/mbstring/xml/curl/zip/gd/bcmath/intl/redis/soap/imagick; falls back through distro/PPA candidates when needed |
 | Composer | installs to /usr/local/bin/composer |
 | Node | NodeSource Node.js 20 |
+| Docker | reuses existing Docker/Compose or installs them when ARBK is enabled |
 | Database | creates the app database and a least-privilege MariaDB user, then pre-fills the wizard DB step |
 | App | `git clone` backend & UI under `/home/coops/`, `composer install`, builds the Vite UI, copies `dist/*` to `public/` |
+| ARBK scraper | reuses a healthy `arbk-scraper` container, or fetches/builds/starts it on `127.0.0.1:8181` if missing |
 | Wizard | drops `wizard/index.php` into `public/install/` and chowns to www-data |
 | Nginx | writes `/etc/nginx/sites-available/<domain>.conf`. Includes **`Cache-Control: no-store` for `/service-worker.js`** so iOS PWAs update reliably |
 
-## Optional ARBK scraper
+## ARBK scraper
 
-The repository also contains `coops-arbk-scraper/`, a Dockerized helper service
-used by the backend ARBK lookup endpoint. It listens locally on `127.0.0.1:8181`.
+The installer uses the Dockerized ARBK helper service for the backend lookup
+endpoint. If an `arbk-scraper` container is already running and
+`http://127.0.0.1:8181/health` is healthy, the installer reuses it. Otherwise it
+fetches/builds the scraper under `/home/arbk-scraper` and starts it with Docker
+Compose. The wizard writes `ARBK_SCRAPER_URL=http://127.0.0.1:8181` to the
+Laravel `.env`.
 
 ```bash
-cd coops-arbk-scraper
-docker compose up -d --build
+sudo ./coops-install.sh install ... --capsolver-api-key 'optional-key'
 ```
 
-Set `CAPSOLVER_API_KEY` in the shell or a local `.env` file before starting the
-container if the target server needs Turnstile solving.
+Use `--skip-arbk` only if you intentionally do not want Docker/the ARBK lookup
+service on that server. Set `--capsolver-api-key` if the target server needs
+Turnstile solving.
 
 ## Web wizard (6 steps)
 
