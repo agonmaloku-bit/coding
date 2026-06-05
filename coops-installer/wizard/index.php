@@ -273,32 +273,34 @@ if ($post) {
                     throw new RuntimeException('Passport personal access client setup failed - see log below');
                 }
 
-                // 6. Create first super admin user via tinker-style script
+                // 6. Create and verify the first super admin user.
                 $a = $data['admin'];
-                $php = sprintf(
-                    'cd %s && php -r %s 2>&1',
-                    escapeshellarg(APP_DIR),
-                    escapeshellarg(
-                        "require 'vendor/autoload.php';" .
-                        '$app = require_once "bootstrap/app.php";' .
-                        '$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();' .
-                        '$department = \\App\\Models\\Department::query()->first();' .
-                        'if (!$department) { fwrite(STDERR, "No department exists after seeding" . PHP_EOL); exit(1); }' .
-                        '$u = \\App\\Models\\User::firstOrNew(["email" => "' . addslashes($a['email']) . '"]);' .
-                        '$u->first_name = "' . addslashes($a['first_name']) . '";' .
-                        '$u->last_name  = "' . addslashes($a['last_name']) . '";' .
-                        '$u->password   = bcrypt("' . addslashes($a['password']) . '");' .
-                        '$u->email_verified_at = now();' .
-                        '$u->department_id = $u->department_id ?: $department->id;' .
-                        '$u->save();' .
-                        'try { $u->assignRole("Super Admin"); } catch (\\Throwable $e) {}' .
-                        'echo "OK user_id=" . $u->id . " department_id=" . $u->department_id;'
-                    )
-                );
-                exec($php, $lines, $rc);
-                $log[] = '$ php (create super admin)';
-                foreach ($lines as $l) $log[] = $l;
-                if ($rc !== 0) throw new RuntimeException('Failed to create admin user');
+                $adminCode =
+                    '$firstName = base64_decode("' . base64_encode($a['first_name']) . '");' .
+                    '$lastName = base64_decode("' . base64_encode($a['last_name']) . '");' .
+                    '$email = base64_decode("' . base64_encode($a['email']) . '");' .
+                    '$password = base64_decode("' . base64_encode($a['password']) . '");' .
+                    '$department = \\App\\Models\\Department::query()->first();' .
+                    'if (!$department) { fwrite(STDERR, "No department exists after seeding" . PHP_EOL); exit(1); }' .
+                    '$u = \\App\\Models\\User::firstOrNew(["email" => $email]);' .
+                    '$u->first_name = $firstName;' .
+                    '$u->last_name = $lastName;' .
+                    '$u->password = $password;' .
+                    '$u->email_verified_at = now();' .
+                    '$u->department_id = $u->department_id ?: $department->id;' .
+                    '$u->save();' .
+                    '$u->assignRole("Super Admin");' .
+                    'if (!$u->hasRole("Super Admin")) { fwrite(STDERR, "Super Admin role assignment failed" . PHP_EOL); exit(1); }' .
+                    'if (!\\Illuminate\\Support\\Facades\\Hash::check($password, $u->password)) { fwrite(STDERR, "Admin password hash check failed" . PHP_EOL); exit(1); }' .
+                    'if (!\\Illuminate\\Support\\Facades\\Auth::attempt(["email" => $email, "password" => $password])) { fwrite(STDERR, "Admin Auth::attempt failed" . PHP_EOL); exit(1); }' .
+                    '$result = $u->createToken("installer-login-check");' .
+                    '$token = $result->token;' .
+                    '$token->revoked = true;' .
+                    '$token->save();' .
+                    'echo "OK user_id=" . $u->id . " department_id=" . $u->department_id . " login_check=ok token_check=ok" . PHP_EOL;';
+                if (laravelPhp('create and verify super admin', $adminCode, $log) !== 0) {
+                    throw new RuntimeException('Failed to create or verify admin user');
+                }
 
                 // 7. Cache configs for prod
                 if ($app['env'] === 'production') {
