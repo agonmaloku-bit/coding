@@ -113,6 +113,10 @@ validate_db_password() {
     [[ "$1" =~ ^[A-Za-z0-9_.@%+=:-]+$ ]] || fail "--db-pass contains unsupported characters; use letters, numbers, or _.@%+=:-"
 }
 
+apt_package_available() {
+    apt-cache show "$1" >/dev/null 2>&1
+}
+
 sql_string() {
     local value="$1"
     value="${value//\\/\\\\}"
@@ -272,7 +276,7 @@ do_install() {
         distro_php_candidate() {
             # Print best distro-provided php version (e.g. 8.3) or empty.
             for v in 8.4 8.3 8.2; do
-                if apt-cache policy "php${v}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+                if apt_package_available "php${v}-fpm"; then
                     echo "$v"; return 0
                 fi
             done
@@ -291,7 +295,7 @@ do_install() {
         fi
 
         # If we still need a non-distro PHP, add the third-party repo.
-        if ! apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+        if ! apt_package_available "php${PHP_VERSION}-fpm"; then
             log "Adding PHP ${PHP_VERSION} repository..."
             ensure_php_repo() {
                 if [[ "$(. /etc/os-release && echo "$ID")" == "ubuntu" ]]; then
@@ -311,7 +315,7 @@ do_install() {
             attempts=0
             while : ; do
                 ensure_php_repo || true
-                if apt-cache policy "php${PHP_VERSION}-fpm" 2>/dev/null | grep -q "Candidate: [^(]"; then
+                if apt_package_available "php${PHP_VERSION}-fpm"; then
                     break
                 fi
                 attempts=$((attempts+1))
