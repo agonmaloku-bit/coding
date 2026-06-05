@@ -9,6 +9,10 @@ class Permission
     public static function hasPermissionTo($permission)
     {
         $user = request()->user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return true;
+        }
+
         if ($user->hasAnyPermission($permission, 'web'))
         {
             return true;

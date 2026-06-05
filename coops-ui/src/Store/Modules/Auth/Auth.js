@@ -26,9 +26,12 @@ export const auth = {
     rolePermissions: (state) => {
       let rolePermissions = [];
 
-      if (state.user.user !== null) {
-        if (state.user.user.roles.length >= 1) {
+      if (state.user && state.user.user) {
+        if (state.user.user.roles && state.user.user.roles.length >= 1) {
           state.user.user.roles.forEach(function (r) {
+            if (!r.permissions) {
+              return;
+            }
             r.permissions.forEach(function (p) {
               rolePermissions.push(p);
             });
@@ -37,7 +40,7 @@ export const auth = {
       }
       return rolePermissions;
     },
-    directPermissions: (state) => state.user.user.permissions,
+    directPermissions: (state) => state.user && state.user.user ? state.user.user.permissions || [] : [],
     // directPermissions: state => {
     //     if (state.currentUser != null) {
     //         return state.currentUser.permissions

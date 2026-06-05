@@ -8,6 +8,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Passport\Passport;
+use Spatie\Permission\Models\Permission;
 
 class AuthenticationMediator implements AuthenticationMediatorInterface
 {
@@ -33,6 +34,7 @@ class AuthenticationMediator implements AuthenticationMediatorInterface
 //            ->first();
 
         $user = $this->userRepository->findById(auth()->user()->id);
+        $this->hydrateSuperAdminPermissions($user);
 
         return [
             'user' => $user,
@@ -59,6 +61,24 @@ class AuthenticationMediator implements AuthenticationMediatorInterface
     public function createToken($user)
     {
         return $user->createToken('API Token')->accessToken;
+    }
+
+    private function hydrateSuperAdminPermissions(User $user): void
+    {
+        if (!$user->hasRole('Super Admin')) {
+            return;
+        }
+
+        $allPermissions = Permission::query()
+            ->where('guard_name', 'web')
+            ->orderBy('id')
+            ->get();
+
+        $user->roles->each(function ($role) use ($allPermissions) {
+            if ($role->name === 'Super Admin') {
+                $role->setRelation('permissions', $allPermissions);
+            }
+        });
     }
 
     public function logout(Request $request)
@@ -123,6 +143,9 @@ class AuthenticationMediator implements AuthenticationMediatorInterface
 
     public function getCurrentUser()
     {
-        return $this->userRepository->findById(auth()->user()->id);
+        $user = $this->userRepository->findById(auth()->user()->id);
+        $this->hydrateSuperAdminPermissions($user);
+
+        return $user;
     }
 }
