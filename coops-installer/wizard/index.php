@@ -166,11 +166,15 @@ if ($post) {
             case 3:
                 $data['app'] = [
                     'name'   => trim($_POST['name'] ?? 'CoOPS'),
+                    'company_name' => trim($_POST['company_name'] ?? ($_POST['name'] ?? 'CoOPS')),
                     'url'    => rtrim(trim($_POST['url'] ?? ''), '/'),
                     'env'    => $_POST['env'] ?? 'production',
                     'debug'  => !empty($_POST['debug']) ? 'true' : 'false',
                     'locale' => $_POST['locale'] ?? 'en',
                 ];
+                if ($data['app']['company_name'] === '') {
+                    $data['app']['company_name'] = $data['app']['name'] ?: 'CoOPS';
+                }
                 $data['mail'] = [
                     'host'  => trim($_POST['mail_host']     ?? ''),
                     'port'  => trim($_POST['mail_port']     ?? '587'),
@@ -207,6 +211,7 @@ if ($post) {
                 envSet('APP_DEBUG',    $app['debug']);
                 envSet('APP_URL',      $app['url']);
                 envSet('APP_LOCALE',   $app['locale']);
+                envSet('COMPANY_NAME', $app['company_name'] ?? $app['name']);
                 envSet('LOG_CHANNEL',  'stack');
                 envSet('DB_CONNECTION','mysql');
                 envSet('DB_HOST',      $db['host']);
@@ -246,16 +251,12 @@ if ($post) {
                 }
                 hardenPassportKeys($log);
 
-                // 5. Migrate, then seed only once. Some legacy seeders use plain create().
+                // 5. Migrate, then seed the idempotent default organization, roles and permissions.
                 if (artisan('migrate --force', $log) !== 0) {
                     throw new RuntimeException('migrate failed — see log below');
                 }
-                if (!tableHasRows($db, 'roles')) {
-                    if (artisan('db:seed --force', $log) !== 0) {
-                        throw new RuntimeException('db:seed failed — see log below');
-                    }
-                } else {
-                    $log[] = 'Seed data already exists; skipping db:seed.';
+                if (artisan('db:seed --force', $log) !== 0) {
+                    throw new RuntimeException('db:seed failed — see log below');
                 }
 
                 $passportClientCode =
@@ -274,7 +275,6 @@ if ($post) {
 
                 // 6. Create first super admin user via tinker-style script
                 $a = $data['admin'];
-                $companyName = addslashes($app['name'] ?: 'CoOPS');
                 $php = sprintf(
                     'cd %s && php -r %s 2>&1',
                     escapeshellarg(APP_DIR),
@@ -283,10 +283,7 @@ if ($post) {
                         '$app = require_once "bootstrap/app.php";' .
                         '$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();' .
                         '$department = \\App\\Models\\Department::query()->first();' .
-                        'if (!$department) {' .
-                        '$company = \\App\\Models\\Company::query()->firstOrCreate(["name" => "' . $companyName . '"]);' .
-                        '$department = \\App\\Models\\Department::query()->firstOrCreate(["name" => "Administration", "company_id" => $company->id]);' .
-                        '}' .
+                        'if (!$department) { fwrite(STDERR, "No department exists after seeding" . PHP_EOL); exit(1); }' .
                         '$u = \\App\\Models\\User::firstOrNew(["email" => "' . addslashes($a['email']) . '"]);' .
                         '$u->first_name = "' . addslashes($a['first_name']) . '";' .
                         '$u->last_name  = "' . addslashes($a['last_name']) . '";' .
@@ -428,6 +425,7 @@ if ($step === 1) {
     <?php elseif ($step === 3): ?>
       <form method="post">
         <label>App name</label><input name="name" type="text" value="<?= h($data['app']['name'] ?? 'CoOPS') ?>" required>
+        <label>Company name</label><input name="company_name" type="text" value="<?= h($data['app']['company_name'] ?? $data['app']['name'] ?? 'CoOPS') ?>" required>
         <label>App URL</label>
         <input name="url" type="text" value="<?= h($data['app']['url'] ?? defaultAppUrl()) ?>" required>
         <div class="hint">e.g. https://pmk.example.com — used for cookies, mail links and CORS.</div>

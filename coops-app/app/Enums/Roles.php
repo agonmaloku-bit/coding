@@ -19,5 +19,6 @@ class Roles
     const LEGAL_OFFICE = "Legal Office";
     const LEGAL_OFFICE_DESCRIPTION = "Legal Office for drafting";
     const TRANSPORT = "Transport";
-    const SIGURIM = "Sigurim";
+    const SECURITY = "Security";
+    const SIGURIM = "Security";
 }

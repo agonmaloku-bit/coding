@@ -36,146 +36,143 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $guardName = config('auth.defaults.guard', 'web');
 
-        Role::updateOrCreate(['name' => replace_whites(Roles::SUPER_ADMIN), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::SUPER_ADMIN),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::SUPER_ADMIN_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::SUPER_ADMIN))->snake(),
-        ])->givePermissionTo(Permission::all());
+        foreach (self::roles() as $roleData) {
+            $role = Role::updateOrCreate(['name' => $roleData['name'], 'guard_name' => $guardName], [
+                'name' => $roleData['name'],
+                'guard_name' => $guardName,
+                'description' => $roleData['description'],
+                'slug' => Str::of($roleData['name'])->snake(),
+            ]);
 
-        Role::updateOrCreate(['name' => replace_whites(Roles::ADMIN), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::ADMIN),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::ADMIN_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::ADMIN))->snake(),
-        ])->givePermissionTo([
-                Permissions::DEPARTMENTS_SHOW_ALL,
+            $role->syncPermissions($roleData['permissions'] === ['*'] ? Permission::all() : $roleData['permissions']);
+        }
+    }
+
+    public static function roles(): array
+    {
+        return [
+            ['name' => Roles::SUPER_ADMIN, 'description' => Roles::SUPER_ADMIN_DESCRIPTION, 'permissions' => ['*']],
+            ['name' => Roles::SECURITY, 'description' => 'Security', 'permissions' => []],
+            ['name' => Roles::TRANSPORT, 'description' => 'Transport', 'permissions' => []],
+            ['name' => Roles::LEGAL_OFFICE, 'description' => Roles::LEGAL_OFFICE_DESCRIPTION, 'permissions' => [
                 Permissions::DEPARTMENTS_SHOW,
-                Permissions::CONTRACT_SHOW_ALL,
-                Permissions::CONTRACT_SHOW,
-                Permissions::RESPONSIBLE_PERSON_SHOW_ALL,
+                Permissions::COMPANY_SHOW,
+                Permissions::CONTRACT_TYPE_SHOW_ALL,
+                Permissions::CONTRACT_TYPE_SHOW,
+                Permissions::CONTRACT_TYPE_ADD,
+                Permissions::CONTRACT_TYPE_EDIT,
                 Permissions::RESPONSIBLE_PERSON_SHOW,
-                Permissions::PROCUREMENT_OFFICER_SHOW_ALL,
                 Permissions::PROCUREMENT_OFFICER_SHOW,
-                Permissions::BILL_SHOW_ALL,
-                Permissions::BILL_SHOW,
-                Permissions::SUPPLIER_SHOW_ALL,
-                Permissions::SUPPLIER_SHOW,
-
-            ]);
-
-
-        Role::updateOrCreate(['name' => replace_whites(Roles::RESPONSIBLE_PERSON), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::RESPONSIBLE_PERSON),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::RESPONSIBLE_PERSON_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::RESPONSIBLE_PERSON))->snake(),
-        ])->givePermissionTo([
-                Permissions::CONTRACT_SHOW_ALL,
-                Permissions::CONTRACT_SHOW,
-                Permissions::CONTRACT_APPROVE,
-                Permissions::BILL_SHOW_ALL,
-                Permissions::BILL_SHOW,
-                Permissions::BILL_APPROVE,
-                Permissions::SUPPLIER_SHOW_ALL,
-                Permissions::SUPPLIER_SHOW,
-            ]);
-
-        Role::updateOrCreate(['name' => replace_whites(Roles::PROCUREMENT_OFFICER), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::PROCUREMENT_OFFICER),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::PROCUREMENT_OFFICER_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::PROCUREMENT_OFFICER))->snake(),
-        ])->givePermissionTo([
-                Permissions::CONTRACT_SHOW_ALL,
-                Permissions::CONTRACT_SHOW,
-                Permissions::CONTRACT_EDIT,
-                Permissions::CONTRACT_REQUEST,
-                Permissions::CONTRACT_APPROVE,
-                Permissions::CONTRACT_ATTACHMENTS,
-                Permissions::BILL_SHOW_ALL,
-                Permissions::BILL_SHOW,
-                Permissions::BILL_EDIT,
-                Permissions::BILL_REQUEST,
-                Permissions::BILL_APPROVE,
-                Permissions::BILL_ATTACHMENTS,
-                Permissions::SUPPLIER_SHOW_ALL,
-                Permissions::SUPPLIER_SHOW,
-                Permissions::SUPPLIER_EDIT,
-
-                Permissions::REPORTS_SHOW_ALL,
-                Permissions::REPORTS_SHOW,
-                Permissions::REPORTS_ADD,
-
-            ]);
-
-        Role::updateOrCreate(['name' => replace_whites(Roles::DIRECTOR_DEPARTMENT), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::DIRECTOR_DEPARTMENT),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::DIRECTOR_DEPARTMENT_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::DIRECTOR_DEPARTMENT))->snake(),
-        ])->givePermissionTo([
-                Permissions::CONTRACT_SHOW_ALL,
-                Permissions::CONTRACT_SHOW,
-                Permissions::CONTRACT_EDIT,
-                Permissions::CONTRACT_APPROVE,
-                Permissions::CONTRACT_ATTACHMENTS,
-                Permissions::BILL_SHOW_ALL,
-                Permissions::BILL_SHOW,
-                Permissions::BILL_EDIT,
-                Permissions::BILL_APPROVE,
-                Permissions::BILL_ATTACHMENTS,
-                Permissions::SUPPLIER_SHOW_ALL,
-                Permissions::SUPPLIER_SHOW,
-                Permissions::SUPPLIER_EDIT,
-            ]);
-
-        Role::updateOrCreate(['name' => replace_whites(Roles::EXECUTIVE_DIRECTOR), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::EXECUTIVE_DIRECTOR),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::EXECUTIVE_DIRECTOR_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::EXECUTIVE_DIRECTOR))->snake(),
-        ])->givePermissionTo([
-                Permissions::CONTRACT_SHOW_ALL,
-                Permissions::CONTRACT_SHOW,
-                Permissions::CONTRACT_EDIT,
-                Permissions::CONTRACT_APPROVE,
-                Permissions::CONTRACT_ATTACHMENTS,
-                Permissions::BILL_SHOW_ALL,
-                Permissions::BILL_SHOW,
-                Permissions::BILL_EDIT,
-                Permissions::BILL_APPROVE,
-                Permissions::BILL_ATTACHMENTS,
-                Permissions::SUPPLIER_SHOW_ALL,
-                Permissions::SUPPLIER_SHOW,
-                Permissions::SUPPLIER_EDIT,
-
-            ]);
-
-        Role::updateOrCreate(['name' => replace_whites(Roles::LEGAL_OFFICE), 'guard_name' => $guardName], [
-            'name' => replace_whites(Roles::LEGAL_OFFICE),
-            'guard_name' => $guardName,
-            'description' => replace_whites(Roles::LEGAL_OFFICE_DESCRIPTION),
-            'slug' => Str::of(replace_whites(Roles::LEGAL_OFFICE))->snake(),
-        ])->givePermissionTo([
+                Permissions::DIRECTOR_DEPARTMENT_SHOW,
+                Permissions::LEGAL_OFFICE_SHOW_ALL,
+                Permissions::LEGAL_OFFICE_SHOW,
                 Permissions::CONTRACT_ARCHIVE,
                 Permissions::CONTRACT_SHOW_ALL,
                 Permissions::CONTRACT_SHOW,
                 Permissions::CONTRACT_ADD,
+                Permissions::CONTRACT_REQUEST,
                 Permissions::CONTRACT_EDIT,
                 Permissions::CONTRACT_APPROVE,
                 Permissions::CONTRACT_ATTACHMENTS,
-                    // Permissions::BILL_ARCHIIVE,
+                Permissions::BILL_ADD,
+                Permissions::BILL_EDIT,
+                Permissions::BILL_DELETE,
+                Permissions::BILL_REQUEST,
+                Permissions::BILL_ATTACHMENTS,
+                Permissions::SUPPLIER_SHOW,
+                Permissions::SUPPLIER_ADD,
+                Permissions::SUPPLIER_EDIT,
+                Permissions::REPORTS_SHOW_ALL,
+                Permissions::REPORTS_SHOW,
+            ]],
+            ['name' => Roles::EXECUTIVE_DIRECTOR, 'description' => Roles::EXECUTIVE_DIRECTOR_DESCRIPTION, 'permissions' => [
+                Permissions::CONTRACT_SHOW_ALL,
+                Permissions::CONTRACT_SHOW,
+                Permissions::CONTRACT_EDIT,
+                Permissions::CONTRACT_APPROVE,
+                Permissions::CONTRACT_ATTACHMENTS,
+                Permissions::BILL_ADD,
+                Permissions::BILL_EDIT,
+                Permissions::BILL_DELETE,
+                Permissions::BILL_REQUEST,
+                Permissions::BILL_APPROVE,
+                Permissions::BILL_CANCEL,
+                Permissions::BILL_ATTACHMENTS,
+                Permissions::REPORTS_SHOW_ALL,
+                Permissions::REPORTS_SHOW,
+                Permissions::BILL_VERIFY_AI,
+            ]],
+            ['name' => Roles::DIRECTOR_DEPARTMENT, 'description' => Roles::DIRECTOR_DEPARTMENT_DESCRIPTION, 'permissions' => [
+                Permissions::CONTRACT_SHOW_ALL,
+                Permissions::CONTRACT_SHOW,
+                Permissions::CONTRACT_ADD,
+                Permissions::CONTRACT_REQUEST,
+                Permissions::CONTRACT_EDIT,
+                Permissions::CONTRACT_APPROVE,
+                Permissions::CONTRACT_ATTACHMENTS,
+                Permissions::SUPPLIER_SHOW,
+            ]],
+            ['name' => Roles::PROCUREMENT_OFFICER, 'description' => Roles::PROCUREMENT_OFFICER_DESCRIPTION, 'permissions' => [
+                Permissions::CONTRACT_SHOW_ALL,
+                Permissions::CONTRACT_SHOW,
+                Permissions::CONTRACT_REQUEST,
+                Permissions::CONTRACT_EDIT,
+                Permissions::CONTRACT_APPROVE,
+                Permissions::CONTRACT_ATTACHMENTS,
                 Permissions::BILL_SHOW_ALL,
                 Permissions::BILL_SHOW,
+                Permissions::BILL_ADD,
                 Permissions::BILL_EDIT,
-                Permissions::BILL_APPROVE,
+                Permissions::BILL_DELETE,
+                Permissions::BILL_REQUEST,
+                Permissions::BILL_CANCEL,
                 Permissions::BILL_ATTACHMENTS,
-                Permissions::SUPPLIER_SHOW_ALL,
                 Permissions::SUPPLIER_SHOW,
+                Permissions::SUPPLIER_ADD,
                 Permissions::SUPPLIER_EDIT,
-
-            ]);
+                Permissions::SUPPLIER_SHOW_ALL,
+                Permissions::REPORTS_SHOW_ALL,
+                Permissions::REPORTS_SHOW,
+                Permissions::REPORTS_ADD,
+            ]],
+            ['name' => Roles::RESPONSIBLE_PERSON, 'description' => Roles::RESPONSIBLE_PERSON_DESCRIPTION, 'permissions' => [
+                Permissions::CONTRACT_SHOW_ALL,
+                Permissions::CONTRACT_SHOW,
+                Permissions::CONTRACT_APPROVE,
+                Permissions::BILL_ADD,
+                Permissions::BILL_EDIT,
+                Permissions::BILL_DELETE,
+                Permissions::BILL_REQUEST,
+                Permissions::BILL_ATTACHMENTS,
+            ]],
+            ['name' => Roles::ADMIN, 'description' => Roles::ADMIN_DESCRIPTION, 'permissions' => [
+                Permissions::DEPARTMENTS_SHOW_ALL,
+                Permissions::DEPARTMENTS_SHOW,
+                Permissions::RESPONSIBLE_PERSON_SHOW_ALL,
+                Permissions::RESPONSIBLE_PERSON_SHOW,
+                Permissions::PROCUREMENT_OFFICER_SHOW_ALL,
+                Permissions::PROCUREMENT_OFFICER_SHOW,
+                Permissions::CONTRACT_SHOW_ALL,
+                Permissions::CONTRACT_SHOW,
+                Permissions::BILL_SHOW_ALL,
+                Permissions::BILL_SHOW,
+                Permissions::BILL_ADD,
+                Permissions::BILL_EDIT,
+                Permissions::BILL_DELETE,
+                Permissions::BILL_REQUEST,
+                Permissions::BILL_APPROVE,
+                Permissions::BILL_CANCEL,
+                Permissions::BILL_ATTACHMENTS,
+                Permissions::SUPPLIER_SHOW,
+                Permissions::SUPPLIER_ADD,
+                Permissions::SUPPLIER_EDIT,
+                Permissions::SUPPLIER_DELETE,
+                Permissions::SUPPLIER_SHOW_ALL,
+                Permissions::REPORTS_SHOW_ALL,
+                Permissions::REPORTS_SHOW,
+                Permissions::BILL_VERIFY_AI,
+            ]],
+        ];
     }
 
     /**
