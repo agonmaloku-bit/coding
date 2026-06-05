@@ -91,6 +91,9 @@ sudo ./coops-install.sh help
 | `--no-clone` | off | Skip cloning (sources are already on disk) |
 | `--skip-os` | off | Skip apt / OS package installs |
 | `--php` | `8.3` | PHP version to install |
+| `--db-name` | `coops` | MariaDB database to create for the app |
+| `--db-user` | `coops` | Least-privilege MariaDB user to create for the app |
+| `--db-pass` | generated | MariaDB password; omit to generate a random one |
 
 ## What it does
 
@@ -100,6 +103,7 @@ sudo ./coops-install.sh help
 | PHP | installs **php8.3-fpm** + ext-mysql/mbstring/xml/curl/zip/gd/bcmath/intl/redis/soap/imagick; falls back through distro/PPA candidates when needed |
 | Composer | installs to /usr/local/bin/composer |
 | Node | NodeSource Node.js 20 |
+| Database | creates the app database and a least-privilege MariaDB user, then pre-fills the wizard DB step |
 | App | `git clone` backend & UI under `/home/coops/`, `composer install`, builds the Vite UI, copies `dist/*` to `public/` |
 | Wizard | drops `wizard/index.php` into `public/install/` and chowns to www-data |
 | Nginx | writes `/etc/nginx/sites-available/<domain>.conf`. Includes **`Cache-Control: no-store` for `/service-worker.js`** so iOS PWAs update reliably |
@@ -144,6 +148,18 @@ cd /home/coops/coops-ui  && git pull && npm ci && npm run build
 cp -r /home/coops/coops-ui/dist/* /home/coops/coops-app/public/
 sudo systemctl reload php8.3-fpm
 ```
+
+## Database wizard defaults
+
+Fresh installs create a MariaDB database/user before the web wizard opens:
+
+- database: `coops` by default
+- username: `coops` by default
+- password: generated unless `--db-pass` is supplied
+
+The generated values are written to `storage/app/install-wizard.json`, and the
+wizard reads them to pre-fill step 2. Leave **Create database** unchecked unless
+you intentionally type root/admin database credentials.
 
 ## HTTPS
 

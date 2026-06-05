@@ -40,6 +40,9 @@ PHP_VERSION_EXPLICIT=0
 NODE_MAJOR="20"
 WEB_USER="www-data"
 SELF_URL=""
+DB_NAME="coops"
+DB_USER="coops"
+DB_PASS=""
 
 SUBCMD="${1:-help}"
 [[ $# -gt 0 ]] && shift || true
@@ -70,7 +73,10 @@ Flags (install):
     --repo-ui-subdir  <path>    UI path inside repo (monorepo installs)
   --no-clone                  Skip git clone (sources already on disk)
   --skip-os                   Skip apt / OS package install
-  --php <ver>                 PHP version  [default: $PHP_VERSION]
+    --php <ver>                 PHP version  [default: $PHP_VERSION]
+    --db-name <name>            Database name [default: $DB_NAME]
+    --db-user <user>            Database user [default: $DB_USER]
+    --db-pass <pass>            Database password [default: generated]
   --self-url <url>            Source URL for 'self-update' subcommand
 EOF
 }
@@ -88,6 +94,9 @@ while [[ $# -gt 0 ]]; do
         --no-clone)  NO_CLONE=1; shift ;;
         --skip-os)   SKIP_OS=1; shift ;;
         --php)       PHP_VERSION="$2"; PHP_VERSION_EXPLICIT=1; shift 2 ;;
+        --db-name)   DB_NAME="$2"; shift 2 ;;
+        --db-user)   DB_USER="$2"; shift 2 ;;
+        --db-pass)   DB_PASS="$2"; shift 2 ;;
         --self-url)  SELF_URL="$2"; shift 2 ;;
         -h|--help)   usage; exit 0 ;;
         *) fail "Unknown option: $1" ;;
@@ -95,6 +104,49 @@ while [[ $# -gt 0 ]]; do
 done
 
 require_root() { [[ $EUID -eq 0 ]] || fail "must run as root (use sudo)"; }
+
+validate_mysql_name() {
+    [[ "$1" =~ ^[A-Za-z0-9_]+$ ]] || fail "$2 may only contain letters, numbers, and underscores"
+}
+
+validate_db_password() {
+    [[ "$1" =~ ^[A-Za-z0-9_.@%+=:-]+$ ]] || fail "--db-pass contains unsupported characters; use letters, numbers, or _.@%+=:-"
+}
+
+sql_string() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\'/\'\'}"
+    printf "'%s'" "$value"
+}
+
+mysql_root_exec() {
+    if command -v mariadb >/dev/null 2>&1; then
+        mariadb --protocol=socket -uroot -e "$1"
+    else
+        mysql --protocol=socket -uroot -e "$1"
+    fi
+}
+
+provision_database() {
+    validate_mysql_name "$DB_NAME" "--db-name"
+    validate_mysql_name "$DB_USER" "--db-user"
+
+    if [[ -z "$DB_PASS" ]]; then
+        DB_PASS="$(openssl rand -hex 18)"
+    fi
+    validate_db_password "$DB_PASS"
+
+    log "Creating MariaDB database/user for wizard defaults..."
+    systemctl enable --now mariadb
+
+    local pass_sql
+    pass_sql="$(sql_string "$DB_PASS")"
+    mysql_root_exec "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    mysql_root_exec "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY $pass_sql; ALTER USER '$DB_USER'@'localhost' IDENTIFIED BY $pass_sql; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';"
+    mysql_root_exec "CREATE USER IF NOT EXISTS '$DB_USER'@'127.0.0.1' IDENTIFIED BY $pass_sql; ALTER USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY $pass_sql; GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1';"
+    mysql_root_exec "FLUSH PRIVILEGES;"
+}
 
 # -------- subcommand: status -------------------------------------------------
 do_status() {
@@ -309,8 +361,10 @@ do_install() {
     if ! id "$INSTALL_USER" >/dev/null 2>&1; then
         log "Creating system user '$INSTALL_USER'..."
         useradd -m -s /bin/bash "$INSTALL_USER"
-        usermod -aG "$WEB_USER" "$INSTALL_USER" || true
     fi
+    usermod -aG "$WEB_USER" "$INSTALL_USER" || true
+    usermod -aG "$INSTALL_USER" "$WEB_USER" || true
+    chmod o+x "/home/$INSTALL_USER" || true
 
     # 3. fetch source
     if [[ $NO_CLONE -eq 0 ]]; then
@@ -323,6 +377,10 @@ do_install() {
     fi
     [[ -d "$APP_DIR" ]] || fail "Backend directory missing: $APP_DIR"
     [[ -d "$UI_DIR"  ]] || fail "UI directory missing: $UI_DIR"
+    chgrp "$INSTALL_USER" "$APP_DIR" || true
+    chmod 775 "$APP_DIR" || true
+
+    provision_database
 
     # 4. backend deps
     log "Installing backend composer dependencies..."
@@ -339,6 +397,22 @@ do_install() {
     fi
     chown "$WEB_USER":"$WEB_USER" "$APP_DIR/.env"
     chmod 664 "$APP_DIR/.env"
+
+    mkdir -p "$APP_DIR/storage/app"
+    cat > "$APP_DIR/storage/app/install-wizard.json" <<JSON
+{
+    "db": {
+        "host": "127.0.0.1",
+        "port": "3306",
+        "database": "$DB_NAME",
+        "username": "$DB_USER",
+        "password": "$DB_PASS",
+        "create": false
+    }
+}
+JSON
+    chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/app" "$APP_DIR/storage/app/install-wizard.json"
+    chmod 660 "$APP_DIR/storage/app/install-wizard.json"
 
     # 5. UI build
     log "Building UI..."
@@ -396,8 +470,22 @@ server {
     }
 
     # Wizard: serve PHP directly, no SPA rewrite.
+    location = /install {
+        return 301 /install/;
+    }
+
+    location = /install/ {
+        rewrite ^ /install/index.php last;
+    }
+
+    location = /install/index.php {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
+        fastcgi_read_timeout 300;
+    }
+
     location ^~ /install/ {
-        try_files \$uri \$uri/ /install/index.php?\$query_string;
+        try_files \$uri =404;
     }
 
     # SPA + Laravel front controller.
@@ -417,10 +505,10 @@ NGINX
     ln -sf "$VHOST" "/etc/nginx/sites-enabled/${DOMAIN}.conf"
     [[ -L /etc/nginx/sites-enabled/default ]] && rm -f /etc/nginx/sites-enabled/default
     nginx -t
-    systemctl reload nginx
     systemctl enable --now nginx
     systemctl enable --now "php${PHP_VERSION}-fpm"
-    systemctl enable --now mariadb
+    systemctl restart "php${PHP_VERSION}-fpm"
+    systemctl restart nginx
 
     cat <<EOM
 
