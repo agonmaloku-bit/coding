@@ -90,19 +90,32 @@ sudo ./coops-install.sh help
 | `--repo-ui-subdir` | — | UI path inside repo (for this repo: `coops-ui`) |
 | `--no-clone` | off | Skip cloning (sources are already on disk) |
 | `--skip-os` | off | Skip apt / OS package installs |
-| `--php` | `8.2` | PHP version to install |
+| `--php` | `8.3` | PHP version to install |
 
 ## What it does
 
 | Phase | Action |
 | --- | --- |
 | OS | nginx, mariadb-server, ghostscript, imagemagick, ufw, git, unzip |
-| PHP | adds ondrej/php (Ubuntu) or sury (Debian); installs **php8.2-fpm** + ext-mysql/mbstring/xml/curl/zip/gd/bcmath/intl/redis/soap/imagick |
+| PHP | installs **php8.3-fpm** + ext-mysql/mbstring/xml/curl/zip/gd/bcmath/intl/redis/soap/imagick; falls back through distro/PPA candidates when needed |
 | Composer | installs to /usr/local/bin/composer |
-| Node | NodeSource Node.js 18 |
+| Node | NodeSource Node.js 20 |
 | App | `git clone` backend & UI under `/home/coops/`, `composer install`, builds Vue UI with `--openssl-legacy-provider`, copies `dist/*` to `public/` |
 | Wizard | drops `wizard/index.php` into `public/install/` and chowns to www-data |
 | Nginx | writes `/etc/nginx/sites-available/<domain>.conf`. Includes **`Cache-Control: no-store` for `/service-worker.js`** so iOS PWAs update reliably |
+
+## Optional ARBK scraper
+
+The repository also contains `coops-arbk-scraper/`, a Dockerized helper service
+used by the backend ARBK lookup endpoint. It listens locally on `127.0.0.1:8181`.
+
+```bash
+cd coops-arbk-scraper
+docker compose up -d --build
+```
+
+Set `CAPSOLVER_API_KEY` in the shell or a local `.env` file before starting the
+container if the target server needs Turnstile solving.
 
 ## Web wizard (6 steps)
 
@@ -129,7 +142,7 @@ Or manually:
 cd /home/coops/coops-app && git pull && composer install --no-dev -o && php artisan migrate --force
 cd /home/coops/coops-ui  && git pull && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build
 cp -r /home/coops/coops-ui/dist/* /home/coops/coops-app/public/
-sudo systemctl reload php8.2-fpm
+sudo systemctl reload php8.3-fpm
 ```
 
 ## HTTPS
