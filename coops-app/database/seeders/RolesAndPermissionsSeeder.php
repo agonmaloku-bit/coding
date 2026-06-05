@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Enums\Permissions;
 use App\Enums\Roles;
 use App\Logic\ClassConstants;
-use App\Models\Department;
 use Illuminate\Database\Seeder;
 use App\Models\Permission;
 use App\Models\Role;
@@ -35,17 +34,18 @@ class RolesAndPermissionsSeeder extends Seeder
             }
         }
 
-        $departments = Department::where("id", "!=", "All departments")->get()->pluck("id");
+        $guardName = config('auth.defaults.guard', 'web');
 
-        $depForSuperAdmin = Department::where('name', 'All departments')->get();
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::SUPER_ADMIN), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::SUPER_ADMIN),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::SUPER_ADMIN_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::SUPER_ADMIN))->snake(),
         ])->givePermissionTo(Permission::all());
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::ADMIN), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::ADMIN),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::ADMIN_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::ADMIN))->snake(),
         ])->givePermissionTo([
@@ -65,8 +65,9 @@ class RolesAndPermissionsSeeder extends Seeder
             ]);
 
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::RESPONSIBLE_PERSON), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::RESPONSIBLE_PERSON),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::RESPONSIBLE_PERSON_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::RESPONSIBLE_PERSON))->snake(),
         ])->givePermissionTo([
@@ -80,8 +81,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permissions::SUPPLIER_SHOW,
             ]);
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::PROCUREMENT_OFFICER), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::PROCUREMENT_OFFICER),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::PROCUREMENT_OFFICER_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::PROCUREMENT_OFFICER))->snake(),
         ])->givePermissionTo([
@@ -107,8 +109,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
             ]);
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::DIRECTOR_DEPARTMENT), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::DIRECTOR_DEPARTMENT),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::DIRECTOR_DEPARTMENT_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::DIRECTOR_DEPARTMENT))->snake(),
         ])->givePermissionTo([
@@ -127,8 +130,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permissions::SUPPLIER_EDIT,
             ]);
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::EXECUTIVE_DIRECTOR), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::EXECUTIVE_DIRECTOR),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::EXECUTIVE_DIRECTOR_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::EXECUTIVE_DIRECTOR))->snake(),
         ])->givePermissionTo([
@@ -148,8 +152,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
             ]);
 
-        Role::create([
+        Role::updateOrCreate(['name' => replace_whites(Roles::LEGAL_OFFICE), 'guard_name' => $guardName], [
             'name' => replace_whites(Roles::LEGAL_OFFICE),
+            'guard_name' => $guardName,
             'description' => replace_whites(Roles::LEGAL_OFFICE_DESCRIPTION),
             'slug' => Str::of(replace_whites(Roles::LEGAL_OFFICE))->snake(),
         ])->givePermissionTo([

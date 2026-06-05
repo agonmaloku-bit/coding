@@ -224,6 +224,7 @@ if ($post) {
 
                 // 5. Create first super admin user via tinker-style script
                 $a = $data['admin'];
+                $companyName = addslashes($app['name'] ?: 'CoOPS');
                 $php = sprintf(
                     'cd %s && php -r %s 2>&1',
                     escapeshellarg(APP_DIR),
@@ -231,12 +232,17 @@ if ($post) {
                         "require 'vendor/autoload.php';" .
                         '$app = require_once "bootstrap/app.php";' .
                         '$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();' .
+                        '$department = \\App\\Models\\Department::query()->first();' .
+                        'if (!$department) {' .
+                        '$company = \\App\\Models\\Company::query()->firstOrCreate(["name" => "' . $companyName . '"]);' .
+                        '$department = \\App\\Models\\Department::query()->firstOrCreate(["name" => "Administration", "company_id" => $company->id]);' .
+                        '}' .
                         '$u = \\App\\Models\\User::firstOrNew(["email" => "' . addslashes($a['email']) . '"]);' .
                         '$u->first_name = "' . addslashes($a['first_name']) . '";' .
                         '$u->last_name  = "' . addslashes($a['last_name']) . '";' .
                         '$u->password   = bcrypt("' . addslashes($a['password']) . '");' .
                         '$u->email_verified_at = now();' .
-                        '$u->department_id = $u->department_id ?: (\\App\\Models\\Department::query()->value("id") ?: 1);' .
+                        '$u->department_id = $u->department_id ?: $department->id;' .
                         '$u->save();' .
                         'try { $u->assignRole("Super Admin"); } catch (\\Throwable $e) {}' .
                         'echo "OK user_id=" . $u->id . " department_id=" . $u->department_id;'
