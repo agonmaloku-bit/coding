@@ -236,9 +236,10 @@ if ($post) {
                         '$u->last_name  = "' . addslashes($a['last_name']) . '";' .
                         '$u->password   = bcrypt("' . addslashes($a['password']) . '");' .
                         '$u->email_verified_at = now();' .
+                        '$u->department_id = $u->department_id ?: (\\App\\Models\\Department::query()->value("id") ?: 1);' .
                         '$u->save();' .
                         'try { $u->assignRole("Super Admin"); } catch (\\Throwable $e) {}' .
-                        'echo "OK user_id=" . $u->id;'
+                        'echo "OK user_id=" . $u->id . " department_id=" . $u->department_id;'
                     )
                 );
                 exec($php, $lines, $rc);
