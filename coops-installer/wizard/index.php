@@ -57,6 +57,29 @@ function artisan(string $cmd, array &$out): int {
     return $rc;
 }
 
+function laravelPhp(string $label, string $code, array &$out): int {
+    $bootstrap = "require 'vendor/autoload.php';" .
+        '$app = require_once "bootstrap/app.php";' .
+        '$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();' .
+        $code;
+    $full = 'cd ' . escapeshellarg(APP_DIR) . ' && php -r ' . escapeshellarg($bootstrap) . ' 2>&1';
+    exec($full, $lines, $rc);
+    $out[] = "\$ php ($label)";
+    foreach ($lines as $l) $out[] = $l;
+    return $rc;
+}
+
+function hardenPassportKeys(array &$out): void {
+    $private = APP_DIR . '/storage/oauth-private.key';
+    $public = APP_DIR . '/storage/oauth-public.key';
+    if (!is_readable($private) || !is_readable($public)) {
+        throw new RuntimeException('Passport OAuth keys are missing or not readable. Run the latest installer and retry.');
+    }
+    @chmod($private, 0600);
+    @chmod($public, 0644);
+    $out[] = 'Passport OAuth keys are present and readable.';
+}
+
 function rrmdir(string $dir): void {
     if (!is_dir($dir)) return;
     foreach (scandir($dir) as $f) {
@@ -210,7 +233,20 @@ if ($post) {
                 // 3. Storage symlink
                 artisan('storage:link', $log);
 
-                // 4. Migrate, then seed only once. Some legacy seeders use plain create().
+                // 4. Passport migrations and keys are required for API login tokens.
+                if (artisan('vendor:publish --tag=passport-migrations --force', $log) !== 0) {
+                    throw new RuntimeException('passport migrations publish failed - see log below');
+                }
+                if (!is_file(APP_DIR . '/storage/oauth-private.key') || !is_file(APP_DIR . '/storage/oauth-public.key')) {
+                    if (artisan('passport:keys --force', $log) !== 0) {
+                        throw new RuntimeException('passport:keys failed - see log below');
+                    }
+                } else {
+                    $log[] = 'Passport OAuth keys already exist; leaving them unchanged.';
+                }
+                hardenPassportKeys($log);
+
+                // 5. Migrate, then seed only once. Some legacy seeders use plain create().
                 if (artisan('migrate --force', $log) !== 0) {
                     throw new RuntimeException('migrate failed — see log below');
                 }
@@ -222,7 +258,21 @@ if ($post) {
                     $log[] = 'Seed data already exists; skipping db:seed.';
                 }
 
-                // 5. Create first super admin user via tinker-style script
+                $passportClientCode =
+                    'if (!\\Illuminate\\Support\\Facades\\Schema::hasTable("oauth_clients")) {' .
+                    'fwrite(STDERR, "oauth_clients table is missing" . PHP_EOL); exit(1);' .
+                    '}' .
+                    'if (!\\Illuminate\\Support\\Facades\\DB::table("oauth_clients")->where("grant_types", "like", "%personal_access%")->where("revoked", false)->exists()) {' .
+                    '\\Illuminate\\Support\\Facades\\Artisan::call("passport:client", ["--personal" => true, "--name" => "Coops Personal Access Client", "--no-interaction" => true]);' .
+                    'echo \\Illuminate\\Support\\Facades\\Artisan::output();' .
+                    '} else {' .
+                    'echo "Personal access client already exists" . PHP_EOL;' .
+                    '}';
+                if (laravelPhp('prepare Passport personal access client', $passportClientCode, $log) !== 0) {
+                    throw new RuntimeException('Passport personal access client setup failed - see log below');
+                }
+
+                // 6. Create first super admin user via tinker-style script
                 $a = $data['admin'];
                 $companyName = addslashes($app['name'] ?: 'CoOPS');
                 $php = sprintf(
@@ -253,7 +303,7 @@ if ($post) {
                 foreach ($lines as $l) $log[] = $l;
                 if ($rc !== 0) throw new RuntimeException('Failed to create admin user');
 
-                // 6. Cache configs for prod
+                // 7. Cache configs for prod
                 if ($app['env'] === 'production') {
                     artisan('config:cache', $log);
                     artisan('route:cache',  $log);

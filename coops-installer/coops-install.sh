@@ -152,6 +152,23 @@ provision_database() {
     mysql_root_exec "FLUSH PRIVILEGES;"
 }
 
+prepare_passport_keys() {
+    [[ -d "$APP_DIR/vendor/laravel/passport" ]] || return 0
+
+    if [[ ! -f "$APP_DIR/storage/oauth-private.key" || ! -f "$APP_DIR/storage/oauth-public.key" ]]; then
+        log "Preparing Passport OAuth keys..."
+        if ! sudo -H -u "$WEB_USER" bash -c "cd '$APP_DIR' && php artisan passport:keys --force"; then
+            warn "Passport keys could not be generated yet; the web installer will retry after .env is configured."
+        fi
+    fi
+
+    if [[ -f "$APP_DIR/storage/oauth-private.key" && -f "$APP_DIR/storage/oauth-public.key" ]]; then
+        chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/oauth-private.key" "$APP_DIR/storage/oauth-public.key"
+        chmod 600 "$APP_DIR/storage/oauth-private.key"
+        chmod 644 "$APP_DIR/storage/oauth-public.key"
+    fi
+}
+
 # -------- subcommand: status -------------------------------------------------
 do_status() {
     log "PHP:        $(php -v 2>/dev/null | head -1 || echo 'not installed')"
@@ -401,6 +418,8 @@ do_install() {
     fi
     chown "$WEB_USER":"$WEB_USER" "$APP_DIR/.env"
     chmod 664 "$APP_DIR/.env"
+
+    prepare_passport_keys
 
     mkdir -p "$APP_DIR/storage/app"
     cat > "$APP_DIR/storage/app/install-wizard.json" <<JSON
