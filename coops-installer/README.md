@@ -100,7 +100,7 @@ sudo ./coops-install.sh help
 | PHP | installs **php8.3-fpm** + ext-mysql/mbstring/xml/curl/zip/gd/bcmath/intl/redis/soap/imagick; falls back through distro/PPA candidates when needed |
 | Composer | installs to /usr/local/bin/composer |
 | Node | NodeSource Node.js 20 |
-| App | `git clone` backend & UI under `/home/coops/`, `composer install`, builds Vue UI with `--openssl-legacy-provider`, copies `dist/*` to `public/` |
+| App | `git clone` backend & UI under `/home/coops/`, `composer install`, builds the Vite UI, copies `dist/*` to `public/` |
 | Wizard | drops `wizard/index.php` into `public/install/` and chowns to www-data |
 | Nginx | writes `/etc/nginx/sites-available/<domain>.conf`. Includes **`Cache-Control: no-store` for `/service-worker.js`** so iOS PWAs update reliably |
 
@@ -140,7 +140,7 @@ Or manually:
 
 ```bash
 cd /home/coops/coops-app && git pull && composer install --no-dev -o && php artisan migrate --force
-cd /home/coops/coops-ui  && git pull && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build
+cd /home/coops/coops-ui  && git pull && npm ci && npm run build
 cp -r /home/coops/coops-ui/dist/* /home/coops/coops-app/public/
 sudo systemctl reload php8.3-fpm
 ```

@@ -181,7 +181,7 @@ do_update() {
     else
         fail "$UI_DIR is not a git checkout and has no CoOPS source metadata"
     fi
-    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && npm ci --legacy-peer-deps && NODE_OPTIONS=--openssl-legacy-provider npm run build"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && npm ci && npm run build"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/public"
 
@@ -342,7 +342,7 @@ do_install() {
 
     # 5. UI build
     log "Building UI..."
-    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci --legacy-peer-deps || npm install --legacy-peer-deps) && NODE_OPTIONS=--openssl-legacy-provider npm run build"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci || npm install) && npm run build"
     mkdir -p "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
 
@@ -387,6 +387,10 @@ server {
         try_files \$uri =404;
     }
     location = /manifest.json {
+        add_header Cache-Control "no-cache";
+        try_files \$uri =404;
+    }
+    location = /manifest.webmanifest {
         add_header Cache-Control "no-cache";
         try_files \$uri =404;
     }
