@@ -51,8 +51,7 @@ import { PROCUREMENT_OFFICER_LIST_GETTER } from "../../Store/Modules/Procurement
 import { ROLES } from "../../Roles/roles";
 import ContractDataService from "../../Services/ContractDataService";
 import BillDataService from "../../Services/BillDataService";
-// import XLSX from 'xlsx';
-import * as XLSX from "xlsx";
+import writeXlsxFile from "write-excel-file/browser";
 import BillCard from "../../Components/BillWorkflow/BillCard.vue";
 import AiDataService from "../../Services/AiDataService";
 import BillWorkflowDrawer from "../../Components/BillWorkflow/BillWorkflowDrawer.vue";
@@ -776,49 +775,44 @@ export default {
       exportBillsToExcel: "exportBillsToExcel",
     }),
 
-    exportOnExcel() {
-      const tableData = [];
+    async exportOnExcel() {
+      const excelCell = (value, options = {}) => ({ value: value == null ? "" : value, ...options });
+      const header = [
+        "#", "LLoji", "Vlera", "Nr i faturës", "Departamenti", "Pranoi nga dep",
+        "Furnitori", "Krijuar nga", "Data", "Step", "Status"
+      ].map((value) => excelCell(value, { fontWeight: "bold" }));
 
-      this.billsPaginatedData.data.forEach((item, index) => {
-        tableData.push([
-          this.query.page * 10 - 10 + (index + 1),
-          item.type,
-          item.value,
-          item.bill_no,
-          item.assigned_dep_id,
-          item.updated_by,
-          // `${item.updated_by.first_name} ${item.updated_by.last_name}`,
-          item.supplier,
-          `${item.created_by.first_name} ${item.created_by.last_name}`,
-          new Date(item.created_at).toLocaleDateString(),
-          `Step ${item.step}`,
-          this.checkBillStatus(item.status),
-        ]);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet([
-        [
-          "#",
-          "LLoji",
-          "Vlera",
-          "Nr i faturës",
-          "Departamenti",
-          "Pranoi nga dep",
-          "Furnitori",
-          "Krijuar nga",
-          "Data",
-          "Step",
-          "Status",
-        ],
-        ...tableData,
+      const rows = this.billsPaginatedData.data.map((item, index) => [
+        excelCell(this.query.page * 10 - 10 + (index + 1)),
+        excelCell(item.type),
+        excelCell(item.value),
+        excelCell(item.bill_no),
+        excelCell(item.assigned_dep_id),
+        excelCell(item.updated_by),
+        excelCell(item.supplier),
+        excelCell(`${item.created_by.first_name} ${item.created_by.last_name}`),
+        excelCell(new Date(item.created_at).toLocaleDateString()),
+        excelCell(`Step ${item.step}`),
+        excelCell(this.checkBillStatus(item.status)),
       ]);
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Bills");
-
-      const fileName = "Fatura.xlsx";
-
-      XLSX.writeFile(wb, fileName);
+      await writeXlsxFile([header, ...rows], {
+        fileName: "Fatura.xlsx",
+        sheet: "Bills",
+        columns: [
+          { width: 8 },
+          { width: 14 },
+          { width: 14 },
+          { width: 18 },
+          { width: 18 },
+          { width: 18 },
+          { width: 24 },
+          { width: 24 },
+          { width: 14 },
+          { width: 12 },
+          { width: 18 },
+        ]
+      });
     },
     ...mapActions("users", {
       fetchAllUsers: FETCH_ALL_USERS_ACTION,

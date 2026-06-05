@@ -3,18 +3,20 @@
   "version": "0.1.2",
   "private": true,
   "scripts": {
-    "serve": "set NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service serve",
-    "build": "set NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service build",
-    "lint": "set NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service lint"
+    "serve": "vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "lint": "eslint --ext .js,.vue src"
   },
   "dependencies": {
-    "@fontsource/source-sans-pro": "^4.5.1",
+    "@fontsource/source-sans-pro": "^5.2.5",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@hennge/vue3-pagination": "^1.0.17",
-    "@vueup/vue-quill": "^1.2.0",
+    "@vueup/vue-quill": "^1.5.3",
     "admin-lte": "^3.1.0",
     "axios": "^1.17.0",
-    "core-js": "^3.19.3",
+    "core-js": "^3.49.0",
     "icheck-bootstrap": "^3.0.1",
     "nprogress": "^0.2.0",
     "vue": "^3.5.35",
@@ -27,21 +29,21 @@
     "vue-spinner": "^1.0.4",
     "vue-sweetalert2": "^5.0.2",
     "vue-toast-notification": "^2.0.1",
-    "vuex": "^4.0.0-0",
-    "xlsx": "^0.18.5"
+    "vuex": "^4.1.0",
+    "write-excel-file": "^4.0.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-eslint": "~4.5.0",
-    "@vue/cli-plugin-pwa": "~4.5.0",
-    "@vue/cli-plugin-router": "~4.5.0",
-    "@vue/cli-plugin-vuex": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
+    "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.5.35",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^7.0.0",
-    "register-service-worker": "^1.7.2"
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.33.0",
+    "vite": "^6.4.3",
+    "vite-plugin-pwa": "1.0.3",
+    "vue-eslint-parser": "^9.4.3"
+  },
+  "overrides": {
+    "workbox-build": "7.3.0",
+    "workbox-window": "7.3.0"
   }
 }

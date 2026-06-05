@@ -7,7 +7,7 @@ import i18n from './i18n'
 import './registerServiceWorker'
 
 import './index.css';
-import '../node_modules/nprogress/nprogress.css';
+import 'nprogress/nprogress.css';
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import VueToast from 'vue-toast-notification';
