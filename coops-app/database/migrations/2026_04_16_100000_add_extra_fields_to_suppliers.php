@@ -8,8 +8,10 @@ class AddExtraFieldsToSuppliers extends Migration
 {
     public function up()
     {
-        Schema::table('suppliers', function (Blueprint $table) {
-            $table->string('address')->nullable()->after('bussines_no');
+        $supplierAfterColumn = Schema::hasColumn('suppliers', 'numri_biznesit') ? 'numri_biznesit' : 'bussines_no';
+
+        Schema::table('suppliers', function (Blueprint $table) use ($supplierAfterColumn) {
+            $table->string('address')->nullable()->after($supplierAfterColumn);
             $table->string('phone')->nullable()->after('address');
             $table->string('email')->nullable()->after('phone');
             $table->string('website')->nullable()->after('email');

@@ -23,17 +23,17 @@ class CreateBillsTable extends Migration
             $table->string("value")->nullable();
             $table->string('bill_no')->nullable();
             // $table->bigInteger('bill_no')->startingValue(1000000000)->unique();
-            $table->integer("supplier")->nullable();
+            $table->unsignedBigInteger("supplier")->nullable();
             $table->text("description")->nullable();
             // $table->bigInteger("ordered")->unsigned();
-            // $table->bigInteger("accepted")->unsigned();
+            $table->unsignedBigInteger("accepted")->nullable();
             $table->text("comment")->nullable();
             // $table->string("file_upload")->nullable();
             $table->bigInteger("created_by")->unsigned();
             $table->bigInteger("updated_by")->unsigned()->nullable();
             $table->integer("step")->nullable();
             $table->integer("status")->nullable();
-            $table->integer("assigned_dep_id")->nullable();
+            $table->unsignedBigInteger("assigned_dep_id")->nullable();
             $table->timestamp('approved_first')->nullable();
             $table->timestamp('approved_second')->nullable();
             // $table->timestamp('approved_third')->nullable();
@@ -45,7 +45,7 @@ class CreateBillsTable extends Migration
             $table->foreign("accepted")->references("id")->on("users")->onDelete('cascade');
             $table->foreign("created_by")->references("id")->on("users")->onDelete('cascade');
             $table->foreign("updated_by")->references("id")->on("users")->onDelete('cascade');
-            $table->foreign("supplier")->references("id")->on("suppliers")->onDelete('cascade');
+            // The suppliers table is created by a later legacy migration.
             $table->foreign("assigned_dep_id")->references("id")->on("departments")->onDelete('cascade');
         });
     }

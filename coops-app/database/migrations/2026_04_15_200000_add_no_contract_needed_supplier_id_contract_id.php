@@ -8,8 +8,10 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('suppliers', function (Blueprint $table) {
-            $table->boolean('no_contract_needed')->default(false)->after('bussines_no');
+        $supplierAfterColumn = Schema::hasColumn('suppliers', 'numri_biznesit') ? 'numri_biznesit' : 'bussines_no';
+
+        Schema::table('suppliers', function (Blueprint $table) use ($supplierAfterColumn) {
+            $table->boolean('no_contract_needed')->default(false)->after($supplierAfterColumn);
         });
 
         Schema::table('contracts', function (Blueprint $table) {
