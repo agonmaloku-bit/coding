@@ -6,7 +6,6 @@ use App\Mediators\Auth\AuthenticationMediator;
 use App\Mediators\Auth\Contracts\AuthenticationMediatorInterface;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Passport\Passport;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -29,10 +28,6 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         $this->app->bind(AuthenticationMediatorInterface::class, AuthenticationMediator::class);
-
-        if (! $this->app->routesAreCached()) {
-            Passport::routes();
-        }
 
         Gate::before(function ($user, $ability) {
             if ($user->hasRole('Super Admin')) {

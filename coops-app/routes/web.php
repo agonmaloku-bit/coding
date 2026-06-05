@@ -90,4 +90,4 @@ Route::get('/exl', function () {
     return Excel::download(new \App\Exports\BillsExport, 'bills.xlsx');
 });
 // added new
-Route::post('/logout', '\App\Http\Controllers\Auth\AuthenticationController@logout')->name('logout');
+Route::post('/logout', [\App\Http\Controllers\Api\Auth\AuthenticationController::class, 'logout'])->name('logout');
