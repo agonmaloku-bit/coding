@@ -183,7 +183,7 @@ prepare_passport_keys() {
     if [[ -f "$APP_DIR/storage/oauth-private.key" && -f "$APP_DIR/storage/oauth-public.key" ]]; then
         chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/oauth-private.key" "$APP_DIR/storage/oauth-public.key"
         chmod 600 "$APP_DIR/storage/oauth-private.key"
-        chmod 644 "$APP_DIR/storage/oauth-public.key"
+        chmod 660 "$APP_DIR/storage/oauth-public.key"
     fi
 }
 

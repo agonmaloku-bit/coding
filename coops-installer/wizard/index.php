@@ -76,7 +76,7 @@ function hardenPassportKeys(array &$out): void {
         throw new RuntimeException('Passport OAuth keys are missing or not readable. Run the latest installer and retry.');
     }
     @chmod($private, 0600);
-    @chmod($public, 0644);
+    @chmod($public, 0660);
     $out[] = 'Passport OAuth keys are present and readable.';
 }
 
