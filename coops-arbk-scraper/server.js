@@ -89,6 +89,13 @@ function capsolverPoll(bodyObj) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function businessSearchPayload(nui, token = '') {
+    return {
+        emriBiznesit: '', nui, nrFiscal: '', numriPersonal: '',
+        aktivitetiKryesorId: '', aktivitetetTjeraId: '', Gjuha: 'sq', token,
+    };
+}
+
 // ─── ARBK AES key ─────────────────────────────────────────────────────────────
 
 async function getApiKey() {
@@ -228,10 +235,7 @@ async function lookupDirectApi(nui) {
 
     // Attempt 2: KerkoBiznesin POST without Turnstile token
     try {
-        const r = await post('Services/KerkoBiznesin', { key: encKey }, {
-            emriBiznesit: '', nui, nrFiscal: '', numriPersonal: '',
-            aktivitetiKryesorId: '', aktivitetetTjeraId: '', gjuhaId: '1', token: '',
-        });
+        const r = await post('Services/KerkoBiznesin', { key: encKey }, businessSearchPayload(nui));
         if (r.status === 200 && Array.isArray(r.body) && r.body.length > 0) {
             console.log(`[ARBK] KerkoBiznesin (no token) succeeded for NUI=${nui}`);
             return { raw: r.body, mode: 'direct-notoken' };
@@ -273,10 +277,7 @@ app.get('/lookup', async (req, res) => {
             console.log(`[ARBK] Solving Turnstile via CapSolver for NUI=${nui}...`);
             const token  = await solveTurnstileViaCapsolver(apiKey);
             const encKey = await getApiKey();
-            const resp   = await post('Services/KerkoBiznesin', { key: encKey }, {
-                emriBiznesit: '', nui, nrFiscal: '', numriPersonal: '',
-                aktivitetiKryesorId: '', aktivitetetTjeraId: '', gjuhaId: '1', token,
-            });
+            const resp   = await post('Services/KerkoBiznesin', { key: encKey }, businessSearchPayload(nui, token));
             console.log(`[ARBK] CapSolver KerkoBiznesin status=${resp.status} results=${Array.isArray(resp.body) ? resp.body.length : JSON.stringify(resp.body).slice(0,80)}`);
             if (resp.status === 200 && Array.isArray(resp.body) && resp.body.length > 0) {
                 raw = resp.body; mode = 'capsolver';
@@ -333,10 +334,7 @@ app.get('/lookup-with-token', async (req, res) => {
         const encKey = rawKey || await getApiKey();
         console.log(`[ARBK] manual-token lookup NUI=${nui} key=${encKey.slice(0,20)}... token=${token.slice(0,20)}...`);
 
-        const resp = await post('Services/KerkoBiznesin', { key: encKey }, {
-            emriBiznesit: '', nui, nrFiscal: '', numriPersonal: '',
-            aktivitetiKryesorId: '', aktivitetetTjeraId: '', gjuhaId: '1', token,
-        });
+        const resp = await post('Services/KerkoBiznesin', { key: encKey }, businessSearchPayload(nui, token));
         console.log(`[ARBK] manual-token status=${resp.status}`);
         if (resp.status === 200 && Array.isArray(resp.body) && resp.body.length > 0) {
             return res.json({ ...mapRow(resp.body[0]), mode: 'manual-token' });

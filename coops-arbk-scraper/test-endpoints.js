@@ -73,7 +73,7 @@ async function post(path, key, bodyObj) {
             } else if (method === 'POST-nui') {
                 r = await post(path, useKey === 'key' ? key : '', {
                     emriBiznesit: '', nui, nrFiscal: '', numriPersonal: '',
-                    aktivitetiKryesorId: '', aktivitetetTjeraId: '', gjuhaId: 'sq', token: '',
+                    aktivitetiKryesorId: '', aktivitetetTjeraId: '', Gjuha: 'sq', token: '',
                 });
             }
             const preview = typeof r.b === 'object' ? JSON.stringify(r.b).slice(0, 150) : String(r.b).slice(0, 150);

@@ -69,7 +69,7 @@ async function main() {
     console.log('\n[3] Calling KerkoBiznesin...');
     const arbkBody = {
         emriBiznesit: '', nui: NUI, nrFiscal: '', numriPersonal: '',
-        aktivitetiKryesorId: '', aktivitetetTjeraId: '', gjuhaId: 'sq', token,
+        aktivitetiKryesorId: '', aktivitetetTjeraId: '', Gjuha: 'sq', token,
     };
     const arbkHeaders = {
         'key': encKey,
