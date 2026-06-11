@@ -120,12 +120,13 @@ Compose. The wizard writes `ARBK_SCRAPER_URL=http://127.0.0.1:8181` to the
 Laravel `.env`.
 
 ```bash
-sudo ./coops-install.sh install ... --capsolver-api-key 'optional-key'
+sudo ./coops-install.sh install ... --capsolver-api-key "$CAPSOLVER_API_KEY"
 ```
 
 Use `--skip-arbk` only if you intentionally do not want Docker/the ARBK lookup
-service on that server. Set `--capsolver-api-key` if the target server needs
-Turnstile solving.
+service on that server. Set `--capsolver-api-key` or export `CAPSOLVER_API_KEY`
+before running the installer if the target server needs Turnstile solving. Do
+not commit API keys to the repository.
 
 ## Web wizard (6 steps)
 

@@ -4,7 +4,7 @@
 const https  = require('https');
 const crypto = require('crypto');
 
-const CAP_KEY = 'CAP-50C875F5801F662115BA57C150EB735F83BD4670F52588A629BB87D996FDABCC';
+const CAP_KEY = process.env.CAPSOLVER_API_KEY;
 const NUI     = process.argv[2] || '810137918';
 
 function httpReq(hostname, path, method, headers, bodyObj) {
@@ -32,6 +32,11 @@ function httpReq(hostname, path, method, headers, bodyObj) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function main() {
+    if (!CAP_KEY) {
+        console.error('Set CAPSOLVER_API_KEY before running this test.');
+        process.exit(1);
+    }
+
     console.log(`\n=== ARBK Lookup Test, NUI: ${NUI} ===\n`);
 
     // 1. Solve Turnstile via CapSolver
