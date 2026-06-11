@@ -25,6 +25,7 @@ import {
   SET_ERRORS_ACTION,
 } from "@/Store/Modules/Supplier/constants";
 import { useMeta } from "vue-meta";
+import { API_BASE_URL } from "@/http-common";
 
 export default {
   name: "Suppliers",
@@ -135,8 +136,7 @@ export default {
       try {
         const user  = JSON.parse(localStorage.getItem('user') || '{}');
         const token = user && user.token ? user.token : '';
-        const baseUrl = process.env.VUE_APP_URL;
-        const resp = await fetch(`${baseUrl}arbk/lookup?business_number=${encodeURIComponent(nui)}`, {
+        const resp = await fetch(`${API_BASE_URL}arbk/lookup?business_number=${encodeURIComponent(nui)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (resp.status === 404) { this.arbkStatus = 'not-found'; return; }
