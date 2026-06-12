@@ -324,7 +324,13 @@ checkout_source() {
     [[ -d "$tmp/$subdir" ]] || { rm -rf "$tmp"; fail "Subdirectory not found in repo: $subdir"; }
 
     mkdir -p "$dest"
-    rsync -a --delete --exclude '.git' "$tmp/$subdir/" "$dest/"
+    rsync -a --delete \
+        --exclude '.git' \
+        --exclude '.env' \
+        --exclude 'storage/' \
+        --exclude 'bootstrap/cache/' \
+        --exclude 'public/install/' \
+        "$tmp/$subdir/" "$dest/"
     chown -R "$INSTALL_USER":"$INSTALL_USER" "$dest"
     printf '%s\n' "$repo" > "$dest/.coops-source-url"
     printf '%s\n' "$subdir" > "$dest/.coops-source-subdir"
@@ -344,6 +350,7 @@ do_update() {
     else
         fail "$APP_DIR is not a git checkout and has no PSM source metadata"
     fi
+    [[ -f "$APP_DIR/.env" ]] || fail "$APP_DIR/.env is missing. Restore it from backup or open /install/ to recreate the app configuration, then rerun update."
     sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
