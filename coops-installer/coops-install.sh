@@ -563,14 +563,16 @@ do_install() {
 
     provision_database
 
-    # 4. backend deps
-    log "Installing backend composer dependencies..."
-    sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --prefer-dist --optimize-autoloader"
-
+    # 4. Laravel runtime directories must exist before Composer runs
+    # because post-autoload scripts call Artisan package discovery.
     log "Preparing storage / bootstrap cache..."
     mkdir -p "$APP_DIR/storage/framework/"{cache,sessions,views} "$APP_DIR/storage/logs" "$APP_DIR/bootstrap/cache"
-    chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
+    chown -R "$WEB_USER":"$INSTALL_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
     chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
+
+    # 5. backend deps
+    log "Installing backend composer dependencies..."
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --prefer-dist --optimize-autoloader"
 
     if [[ ! -f "$APP_DIR/.env" ]]; then
         log "Creating empty .env (wizard will populate it)..."
@@ -600,7 +602,7 @@ JSON
     chown "$WEB_USER":"$WEB_USER" "$APP_DIR/storage/app" "$APP_DIR/storage/app/install-wizard.json"
     chmod 660 "$APP_DIR/storage/app/install-wizard.json"
 
-    # 5. UI build
+    # 6. UI build
     log "Building UI..."
     sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci || npm install) && npm run build"
     mkdir -p "$APP_DIR/public"
@@ -608,7 +610,7 @@ JSON
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     remove_favicon_assets "$APP_DIR/public"
 
-    # 6. install web wizard
+    # 7. install web wizard
     WIZARD_DST="$APP_DIR/public/install"
     log "Installing web wizard at $WIZARD_DST ..."
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -625,7 +627,7 @@ PHP
     fi
     chown -R "$WEB_USER":"$WEB_USER" "$WIZARD_DST"
 
-    # 7. nginx vhost
+    # 8. nginx vhost
     VHOST="/etc/nginx/sites-available/${DOMAIN}.conf"
     log "Writing Nginx vhost $VHOST ..."
     cat > "$VHOST" <<NGINX
