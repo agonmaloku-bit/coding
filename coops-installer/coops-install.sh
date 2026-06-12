@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# CoOPS — server provisioning script
+# PSM — server provisioning script
 # -----------------------------------------------------------------------------
 # Brings a fresh Ubuntu 22.04 / 24.04 / Debian 12 server from zero to a working
-# CoOPS installation. After the script finishes, open /install/ in a browser
+# PSM installation. After the script finishes, open /install/ in a browser
 # and complete the configuration wizard.
 #
 # Typical use (download once, then run):
@@ -54,13 +54,22 @@ SUBCMD="${1:-help}"
 [[ $# -gt 0 ]] && shift || true
 
 # -------- helpers ------------------------------------------------------------
-log()  { printf '\033[1;34m[coops]\033[0m %s\n' "$*"; }
+log()  { printf '\033[1;34m[psm]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warn]\033[0m  %s\n' "$*"; }
 fail() { printf '\033[1;31m[fail]\033[0m  %s\n' "$*"; exit 1; }
 
+remove_favicon_assets() {
+    local public_dir="$1"
+    rm -f "$public_dir/favicon.ico"
+    rm -f "$public_dir/manifest.json" "$public_dir/precache-manifest"*.js 2>/dev/null || true
+    rm -f "$public_dir/img/icons/favicon-16x16.png" "$public_dir/img/icons/favicon-32x32.png"
+    rm -f "$public_dir/img/icons/apple-touch-icon.png" "$public_dir/img/icons/apple-touch-icon-152x152.png" "$public_dir/img/icons/apple-touch-icon-167x167.png"
+    rm -f "$public_dir/img/icons/android-chrome-"*.png "$public_dir/img/icons/msapplication-icon-144x144.png" 2>/dev/null || true
+}
+
 usage() {
     cat <<EOF
-CoOPS installer
+PSM installer
 
 Usage:
   $0 install     [flags]      Fresh install
@@ -266,11 +275,11 @@ do_status() {
     log "Ghostscript:$(gs --version 2>/dev/null || echo 'not installed')"
     log "Docker:     $(docker --version 2>/dev/null || echo 'not installed')"
     for s in nginx php${PHP_VERSION}-fpm mariadb; do
-        printf '\033[1;34m[coops]\033[0m %-20s %s\n' "$s" \
+        printf '\033[1;34m[psm]\033[0m %-20s %s\n' "$s" \
             "$(systemctl is-active "$s" 2>/dev/null || echo 'inactive')"
     done
     if command -v docker >/dev/null 2>&1; then
-        printf '\033[1;34m[coops]\033[0m %-20s %s\n' "arbk-scraper" \
+        printf '\033[1;34m[psm]\033[0m %-20s %s\n' "arbk-scraper" \
             "$(docker inspect -f '{{.State.Status}}' arbk-scraper 2>/dev/null || echo 'not installed')"
     fi
 }
@@ -333,7 +342,7 @@ do_update() {
     elif [[ -f "$APP_DIR/.coops-source-url" && -f "$APP_DIR/.coops-source-subdir" ]]; then
         checkout_source "$(cat "$APP_DIR/.coops-source-url")" "$APP_DIR" "$(cat "$APP_DIR/.coops-source-subdir")" "backend"
     else
-        fail "$APP_DIR is not a git checkout and has no CoOPS source metadata"
+        fail "$APP_DIR is not a git checkout and has no PSM source metadata"
     fi
     sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
@@ -344,10 +353,12 @@ do_update() {
     elif [[ -f "$UI_DIR/.coops-source-url" && -f "$UI_DIR/.coops-source-subdir" ]]; then
         checkout_source "$(cat "$UI_DIR/.coops-source-url")" "$UI_DIR" "$(cat "$UI_DIR/.coops-source-subdir")" "UI"
     else
-        fail "$UI_DIR is not a git checkout and has no CoOPS source metadata"
+        fail "$UI_DIR is not a git checkout and has no PSM source metadata"
     fi
     sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && npm ci && npm run build"
+    remove_favicon_assets "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
+    remove_favicon_assets "$APP_DIR/public"
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/public"
 
     log "Reloading php-fpm..."
@@ -561,7 +572,9 @@ JSON
     log "Building UI..."
     sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci || npm install) && npm run build"
     mkdir -p "$APP_DIR/public"
+    remove_favicon_assets "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
+    remove_favicon_assets "$APP_DIR/public"
 
     # 6. install web wizard
     WIZARD_DST="$APP_DIR/public/install"
@@ -656,7 +669,7 @@ NGINX
     cat <<EOM
 
 \033[1;32m=========================================================
- CoOPS provisioning complete.
+ PSM provisioning complete.
 =========================================================\033[0m
 
   1. Open in your browser:

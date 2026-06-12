@@ -1,6 +1,6 @@
 <template>
   <metainfo>
-    <template v-slot:title="{ content }">{{ content ? `${content} — CoOPS` : 'CoOPS' }}</template>
+    <template v-slot:title="{ content }">{{ content ? `${content} — PSM` : 'PSM' }}</template>
   </metainfo>
   <router-view/>
   <div v-if="busy" class="global-busy-overlay" role="status" aria-live="polite">

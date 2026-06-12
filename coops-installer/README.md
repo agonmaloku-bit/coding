@@ -1,7 +1,7 @@
-# CoOPS installer
+# PSM installer
 
 A single-file bash installer + a 6-step web wizard. Brings a fresh Ubuntu /
-Debian server from zero to a running CoOPS instance.
+Debian server from zero to a running PSM instance.
 
 The installer files live in this repository under
 [`coops-installer/`](https://github.com/agonmaloku-bit/coding/tree/main/coops-installer).

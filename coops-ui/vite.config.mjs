@@ -22,25 +22,16 @@ export default defineConfig(({ mode }) => {
                 filename: 'service-worker.js',
                 injectRegister: false,
                 manifest: {
-                    name: 'CoOPS - Operations Platform',
-                    short_name: 'CoOPS',
-                    description: 'Contracts, bills and operations management.',
+                    name: 'PSM - Platforma e Sistemit të Menaxhimit',
+                    short_name: 'PSM',
+                    description: 'Platforma e Sistemit të Menaxhimit.',
                     start_url: '/',
                     scope: '/',
                     display: 'standalone',
                     background_color: '#ffffff',
                     theme_color: '#1d4ed8',
                     orientation: 'any',
-                    icons: [
-                        { src: '/img/icons/android-chrome-72x72.png', sizes: '72x72', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-96x96.png', sizes: '96x96', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-128x128.png', sizes: '128x128', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-144x144.png', sizes: '144x144', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-152x152.png', sizes: '152x152', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                        { src: '/img/icons/android-chrome-384x384.png', sizes: '384x384', type: 'image/png' },
-                        { src: '/img/icons/android-chrome-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-                    ]
+                    icons: []
                 },
                 workbox: {
                     skipWaiting: true,
@@ -75,8 +66,8 @@ export default defineConfig(({ mode }) => {
             'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
             'process.env.BASE_URL': JSON.stringify(base),
             'process.env.VUE_APP_URL': JSON.stringify(appEnv(env, 'VUE_APP_URL')),
-            'process.env.VUE_APP_TITLE': JSON.stringify(appEnv(env, 'VUE_APP_TITLE', 'CoOPS')),
-            'process.env.VUE_APP_DESCRIPTION': JSON.stringify(appEnv(env, 'VUE_APP_DESCRIPTION', 'Contracts, bills and operations management.')),
+            'process.env.VUE_APP_TITLE': JSON.stringify(appEnv(env, 'VUE_APP_TITLE', 'PSM')),
+            'process.env.VUE_APP_DESCRIPTION': JSON.stringify(appEnv(env, 'VUE_APP_DESCRIPTION', 'Platforma e Sistemit të Menaxhimit.')),
             'process.env.VUE_APP_DEV_TOOLS': JSON.stringify(appBoolEnv(env, 'VUE_APP_DEV_TOOLS', mode !== 'production'))
         },
         server: {

@@ -1,6 +1,6 @@
 <?php
 /**
- * CoOPS — installation web wizard.
+ * PSM — installation web wizard.
  *
  * Single-file, multi-step installer. Sits at <APP>/public/install/index.php.
  * Walks the operator through:
@@ -165,15 +165,15 @@ if ($post) {
 
             case 3:
                 $data['app'] = [
-                    'name'   => trim($_POST['name'] ?? 'CoOPS'),
-                    'company_name' => trim($_POST['company_name'] ?? ($_POST['name'] ?? 'CoOPS')),
+                    'name'   => trim($_POST['name'] ?? 'PSM'),
+                    'company_name' => trim($_POST['company_name'] ?? ($_POST['name'] ?? 'PSM')),
                     'url'    => rtrim(trim($_POST['url'] ?? ''), '/'),
                     'env'    => $_POST['env'] ?? 'production',
                     'debug'  => !empty($_POST['debug']) ? 'true' : 'false',
                     'locale' => $_POST['locale'] ?? 'en',
                 ];
                 if ($data['app']['company_name'] === '') {
-                    $data['app']['company_name'] = $data['app']['name'] ?: 'CoOPS';
+                    $data['app']['company_name'] = $data['app']['name'] ?: 'PSM';
                 }
                 $data['mail'] = [
                     'host'  => trim($_POST['mail_host']     ?? ''),
@@ -267,7 +267,7 @@ if ($post) {
                     'fwrite(STDERR, "oauth_clients table is missing" . PHP_EOL); exit(1);' .
                     '}' .
                     'if (!\\Illuminate\\Support\\Facades\\DB::table("oauth_clients")->where("grant_types", "like", "%personal_access%")->where("revoked", false)->exists()) {' .
-                    '\\Illuminate\\Support\\Facades\\Artisan::call("passport:client", ["--personal" => true, "--name" => "Coops Personal Access Client", "--no-interaction" => true]);' .
+                    '\\Illuminate\\Support\\Facades\\Artisan::call("passport:client", ["--personal" => true, "--name" => "PSM Personal Access Client", "--no-interaction" => true]);' .
                     'echo \\Illuminate\\Support\\Facades\\Artisan::output();' .
                     '} else {' .
                     'echo "Personal access client already exists" . PHP_EOL;' .
@@ -350,7 +350,7 @@ if ($step === 1) {
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CoOPS — Installation</title>
+<title>PSM — Installation</title>
 <style>
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f8fafc; color:#0f172a; margin:0; }
   .wrap { max-width: 720px; margin: 40px auto; padding: 0 16px; }
@@ -383,7 +383,7 @@ if ($step === 1) {
 </style></head><body>
 <div class="wrap">
   <div class="card">
-    <h1>CoOPS — Installation</h1>
+    <h1>PSM — Installation</h1>
     <div class="sub">Set up the database, app and first administrator. Takes about a minute.</div>
     <div class="steps">
       <?php foreach ([1=>'System',2=>'Database',3=>'App',4=>'Admin',5=>'Install',6=>'Done'] as $i=>$lab): ?>
@@ -429,8 +429,8 @@ if ($step === 1) {
 
     <?php elseif ($step === 3): ?>
       <form method="post">
-        <label>App name</label><input name="name" type="text" value="<?= h($data['app']['name'] ?? 'CoOPS') ?>" required>
-        <label>Company name</label><input name="company_name" type="text" value="<?= h($data['app']['company_name'] ?? $data['app']['name'] ?? 'CoOPS') ?>" required>
+        <label>App name</label><input name="name" type="text" value="<?= h($data['app']['name'] ?? 'PSM') ?>" required>
+        <label>Company name</label><input name="company_name" type="text" value="<?= h($data['app']['company_name'] ?? $data['app']['name'] ?? 'PSM') ?>" required>
         <label>App URL</label>
         <input name="url" type="text" value="<?= h($data['app']['url'] ?? defaultAppUrl()) ?>" required>
         <div class="hint">e.g. https://pmk.example.com — used for cookies, mail links and CORS.</div>
@@ -507,6 +507,6 @@ if ($step === 1) {
 
     <?php endif; ?>
   </div>
-  <div class="sub" style="text-align:center;margin-top:14px;">CoOPS installer · <?= date('Y') ?></div>
+  <div class="sub" style="text-align:center;margin-top:14px;">PSM installer · <?= date('Y') ?></div>
 </div>
 </body></html>
