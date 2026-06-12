@@ -379,7 +379,14 @@ PHP
     fi
     sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
 
+    log "Resetting storage and bootstrap/cache permissions..."
+    mkdir -p "$APP_DIR/storage/framework/"{cache/data,sessions,views} "$APP_DIR/storage/logs" "$APP_DIR/bootstrap/cache"
+    chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
+    find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type d -exec chmod 2775 {} \;
+    find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type f -exec chmod 664 {} \;
+
     log "Clearing Laravel caches..."
+    rm -f "$APP_DIR/bootstrap/cache/"{routes-v7.php,routes.php,config.php,packages.php,services.php,compiled.php,events.php}
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan optimize:clear" || \
         sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear" || true
 
