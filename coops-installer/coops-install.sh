@@ -270,6 +270,7 @@ do_status() {
     log "PHP:        $(php -v 2>/dev/null | head -1 || echo 'not installed')"
     log "Composer:   $(composer --version 2>/dev/null || echo 'not installed')"
     log "Node:       $(node -v 2>/dev/null || echo 'not installed')"
+    log "npm:        $(npm -v 2>/dev/null || echo 'not installed')"
     log "Nginx:      $(nginx -v 2>&1 || echo 'not installed')"
     log "MariaDB:    $(mariadb --version 2>/dev/null || mysql --version 2>/dev/null || echo 'not installed')"
     log "Ghostscript:$(gs --version 2>/dev/null || echo 'not installed')"
