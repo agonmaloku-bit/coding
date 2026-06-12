@@ -428,6 +428,9 @@ PHP
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
     find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type d -exec chmod 2775 {} \;
     find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type f -exec chmod 664 {} \;
+    # Passport refuses to load OAuth keys with permissions wider than 660.
+    [[ -f "$APP_DIR/storage/oauth-private.key" ]] && chmod 600 "$APP_DIR/storage/oauth-private.key"
+    [[ -f "$APP_DIR/storage/oauth-public.key" ]]  && chmod 660 "$APP_DIR/storage/oauth-public.key"
 
     log "Clearing Laravel caches..."
     rm -f "$APP_DIR/bootstrap/cache/"{routes-v7.php,routes.php,config.php,packages.php,services.php,compiled.php,events.php}
@@ -641,6 +644,9 @@ do_install() {
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
     find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type d -exec chmod 2775 {} \;
     find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type f -exec chmod 664 {} \;
+    # Passport refuses to load OAuth keys with permissions wider than 660.
+    [[ -f "$APP_DIR/storage/oauth-private.key" ]] && chmod 600 "$APP_DIR/storage/oauth-private.key"
+    [[ -f "$APP_DIR/storage/oauth-public.key" ]]  && chmod 660 "$APP_DIR/storage/oauth-public.key"
     usermod -aG "$WEB_USER" "$INSTALL_USER" || true
 
     # 5. backend deps
