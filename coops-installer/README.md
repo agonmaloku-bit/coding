@@ -143,18 +143,66 @@ OpenAI key is stored in DB, not `.env`. Sign in as the Super Admin → **Managem
 
 ## Updates
 
-```bash
-sudo ./coops-install.sh update
-```
-
-Or manually:
+Always update through the installer. It is the only path that is tested to
+preserve `.env`, runtime storage, Passport keys, and the install wizard:
 
 ```bash
-cd /home/coops/coops-app && git pull && composer install --no-dev -o && php artisan migrate --force
-cd /home/coops/coops-ui  && git pull && npm ci && npm run build
-cp -r /home/coops/coops-ui/dist/* /home/coops/coops-app/public/
-sudo systemctl reload php8.3-fpm
+# 1. refresh the installer copy itself (script + wizard)
+cd /tmp/coops && sudo git pull --ff-only
+
+# 2. run the safe update
+cd /tmp/coops/coops-installer && sudo ./coops-install.sh update
 ```
+
+What `update` does, in order:
+
+1. Pull the latest backend code, **preserving** `.env`, `storage/`,
+   `bootstrap/cache/`, and `public/install/` (rsync with explicit excludes
+   plus an explicit `.env` backup/restore).
+2. Run `composer install --no-dev`.
+3. Reset ownership/permissions on `storage/` and `bootstrap/cache/` to
+   `www-data:www-data` with the setgid bit, so PHP-FPM can always write.
+4. Delete stale `bootstrap/cache/routes-v7.php`, `config.php`, etc., then
+   `php artisan optimize:clear`.
+5. **Backup** the database via `mysqldump` to
+   `/home/coops/backups/<db>-<timestamp>.sql.gz` (last 10 kept).
+6. Run `php artisan migrate --force`.
+7. Pull the latest UI code, `npm ci || npm install`, `npm run build`,
+   sync `dist/` to `public/` (favicons stripped).
+8. Rebuild `config:cache`, `route:cache`, `view:cache` for production.
+9. Reload `php-fpm`.
+
+> **Do not** run `git pull` directly inside `/home/coops/coops-app` or
+> `/home/coops/coops-ui`. Those directories are not real git checkouts on
+> sub-directory installs; they are rsynced from the monorepo. The installer
+> handles syncing safely.
+
+> **Do not** run `npm audit fix --force` on the server. It will upgrade
+> frontend frameworks in breaking ways. Dependency upgrades belong in a
+> separate, tested PR.
+
+### After every update, in the browser
+
+The UI is a PWA, so the service worker may serve the previous shell on the
+first reload. Force a refresh once:
+
+- Chrome / Edge / Firefox: DevTools → **Application** → **Service workers**
+  → **Unregister**, then hard refresh (Ctrl+Shift+R).
+- Or open the app in a private window to confirm the new build is live.
+
+### Recovery if an old update broke `.env`
+
+The current installer cannot delete `.env` anymore, but if you are recovering
+an older install that lost it:
+
+```bash
+cd /tmp/coops && sudo git pull --ff-only
+cd /tmp/coops/coops-installer && sudo ./coops-install.sh update
+# installer will refuse to continue, restore /install/, and tell you to open it
+```
+
+Then visit `/install/` and re-run the 6-step wizard with the same database
+credentials (they're already in `storage/app/install-wizard.json`).
 
 ## Database wizard defaults
 

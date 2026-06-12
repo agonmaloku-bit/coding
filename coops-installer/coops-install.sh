@@ -179,6 +179,41 @@ provision_database() {
     mysql_root_exec "FLUSH PRIVILEGES;"
 }
 
+backup_database() {
+    # Best-effort mysqldump before migrate. Reads DB credentials from .env.
+    # On failure (no mysqldump, unreadable .env, dump error) we warn and continue,
+    # because update should not be blocked by an optional safety net.
+    local env_file="$APP_DIR/.env"
+    [[ -r "$env_file" ]] || { warn "Cannot read $env_file; skipping pre-migrate DB backup."; return 0; }
+    command -v mysqldump >/dev/null 2>&1 || { warn "mysqldump not available; skipping pre-migrate DB backup."; return 0; }
+
+    local db_host db_port db_name db_user db_pass
+    db_host=$(grep -E '^DB_HOST=' "$env_file" | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+    db_port=$(grep -E '^DB_PORT=' "$env_file" | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+    db_name=$(grep -E '^DB_DATABASE=' "$env_file" | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+    db_user=$(grep -E '^DB_USERNAME=' "$env_file" | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+    db_pass=$(grep -E '^DB_PASSWORD=' "$env_file" | head -n1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+    [[ -n "$db_name" && -n "$db_user" ]] || { warn "DB credentials missing in .env; skipping pre-migrate DB backup."; return 0; }
+
+    local backup_dir="/home/$INSTALL_USER/backups"
+    mkdir -p "$backup_dir"
+    chown "$INSTALL_USER":"$INSTALL_USER" "$backup_dir"
+    chmod 750 "$backup_dir"
+    local stamp="$(date +%Y%m%d-%H%M%S)"
+    local out="$backup_dir/${db_name}-${stamp}.sql.gz"
+    log "Backing up database '$db_name' to $out ..."
+    if MYSQL_PWD="$db_pass" mysqldump --single-transaction --quick --routines --triggers \
+        -h "${db_host:-127.0.0.1}" -P "${db_port:-3306}" -u "$db_user" "$db_name" 2>/dev/null | gzip > "$out"; then
+        chown "$INSTALL_USER":"$INSTALL_USER" "$out"
+        chmod 640 "$out"
+        # Keep last 10 backups
+        ls -1t "$backup_dir"/*.sql.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+    else
+        rm -f "$out"
+        warn "mysqldump failed; continuing without a fresh backup. Check credentials in .env."
+    fi
+}
+
 prepare_passport_keys() {
     [[ -d "$APP_DIR/vendor/laravel/passport" ]] || return 0
 
@@ -390,6 +425,7 @@ PHP
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan optimize:clear" || \
         sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear" || true
 
+    backup_database
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
     log "Rebuilding UI..."
@@ -400,7 +436,7 @@ PHP
     else
         fail "$UI_DIR is not a git checkout and has no PSM source metadata"
     fi
-    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && npm ci && npm run build"
+    sudo -H -u "$INSTALL_USER" bash -c "cd '$UI_DIR' && (test -f package-lock.json && npm ci || npm install) && npm run build"
     remove_favicon_assets "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     remove_favicon_assets "$APP_DIR/public"
@@ -581,11 +617,15 @@ do_install() {
     provision_database
 
     # 4. Laravel runtime directories must exist before Composer runs
-    # because post-autoload scripts call Artisan package discovery.
+    # because post-autoload scripts call Artisan package discovery. The setgid
+    # bit ensures files dropped by either the install user or PHP-FPM keep
+    # group ownership and stay writable on subsequent updates.
     log "Preparing storage / bootstrap cache..."
-    mkdir -p "$APP_DIR/storage/framework/"{cache,sessions,views} "$APP_DIR/storage/logs" "$APP_DIR/bootstrap/cache"
-    chown -R "$WEB_USER":"$INSTALL_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
-    chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
+    mkdir -p "$APP_DIR/storage/framework/"{cache/data,sessions,views} "$APP_DIR/storage/logs" "$APP_DIR/bootstrap/cache"
+    chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
+    find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type d -exec chmod 2775 {} \;
+    find "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" -type f -exec chmod 664 {} \;
+    usermod -aG "$WEB_USER" "$INSTALL_USER" || true
 
     # 5. backend deps
     log "Installing backend composer dependencies..."
