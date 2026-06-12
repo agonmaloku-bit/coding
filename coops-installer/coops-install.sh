@@ -378,6 +378,11 @@ PHP
         fail "$APP_DIR/.env is missing. Open /install/ to recreate the app configuration, then rerun update."
     fi
     sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
+
+    log "Clearing Laravel caches..."
+    sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan optimize:clear" || \
+        sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear" || true
+
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
     log "Rebuilding UI..."
@@ -393,6 +398,10 @@ PHP
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     remove_favicon_assets "$APP_DIR/public"
     chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/public"
+
+    log "Rebuilding Laravel caches for production..."
+    sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan config:cache && php artisan route:cache && php artisan view:cache" || \
+        warn "Laravel cache rebuild failed; running uncached. Check storage/logs/laravel.log."
 
     log "Reloading php-fpm..."
     systemctl reload "php${PHP_VERSION}-fpm" || systemctl restart "php${PHP_VERSION}-fpm"
