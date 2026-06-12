@@ -350,7 +350,22 @@ do_update() {
     else
         fail "$APP_DIR is not a git checkout and has no PSM source metadata"
     fi
-    [[ -f "$APP_DIR/.env" ]] || fail "$APP_DIR/.env is missing. Restore it from backup or open /install/ to recreate the app configuration, then rerun update."
+    if [[ ! -f "$APP_DIR/.env" ]]; then
+        WIZARD_DST="$APP_DIR/public/install"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        log "Restoring web wizard at $WIZARD_DST ..."
+        mkdir -p "$WIZARD_DST"
+        if [[ -d "$SCRIPT_DIR/wizard" ]]; then
+            cp "$SCRIPT_DIR/wizard/index.php" "$WIZARD_DST/index.php"
+            cp "$SCRIPT_DIR/wizard/.htaccess" "$WIZARD_DST/.htaccess" 2>/dev/null || true
+        else
+            cat > "$WIZARD_DST/index.php" <<'PHP'
+<?php echo "Wizard payload missing — please re-download installer with the wizard/ folder."; ?>
+PHP
+        fi
+        chown -R "$WEB_USER":"$WEB_USER" "$WIZARD_DST"
+        fail "$APP_DIR/.env is missing. Open /install/ to recreate the app configuration, then rerun update."
+    fi
     sudo -H -u "$INSTALL_USER" bash -c "cd '$APP_DIR' && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
 
