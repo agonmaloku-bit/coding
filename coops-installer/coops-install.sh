@@ -323,6 +323,12 @@ checkout_source() {
     sudo -H -u "$INSTALL_USER" git clone --depth 1 "$repo" "$tmp"
     [[ -d "$tmp/$subdir" ]] || { rm -rf "$tmp"; fail "Subdirectory not found in repo: $subdir"; }
 
+    local env_backup=""
+    if [[ -f "$dest/.env" ]]; then
+        env_backup="$(mktemp)"
+        cp "$dest/.env" "$env_backup"
+    fi
+
     mkdir -p "$dest"
     rsync -a --delete \
         --exclude '.git' \
@@ -331,6 +337,10 @@ checkout_source() {
         --exclude 'bootstrap/cache/' \
         --exclude 'public/install/' \
         "$tmp/$subdir/" "$dest/"
+    if [[ -n "$env_backup" ]]; then
+        cp "$env_backup" "$dest/.env"
+        rm -f "$env_backup"
+    fi
     chown -R "$INSTALL_USER":"$INSTALL_USER" "$dest"
     printf '%s\n' "$repo" > "$dest/.coops-source-url"
     printf '%s\n' "$subdir" > "$dest/.coops-source-subdir"
