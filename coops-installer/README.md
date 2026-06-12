@@ -157,20 +157,27 @@ cd /tmp/coops/coops-installer && sudo ./coops-install.sh update
 What `update` does, in order:
 
 1. Pull the latest backend code, **preserving** `.env`, `storage/`,
-   `bootstrap/cache/`, and `public/install/` (rsync with explicit excludes
-   plus an explicit `.env` backup/restore).
-2. Run `composer install --no-dev`.
+   `bootstrap/cache/`, `vendor/`, `node_modules/`, `public/install/`, and
+   `public/storage` (rsync with explicit excludes plus an explicit `.env`
+   backup/restore). Because `vendor/` and `node_modules/` are preserved,
+   composer/npm only install what actually changed instead of reinstalling
+   every package each update.
+2. Run `composer install --no-dev` (incremental — usually a few seconds).
 3. Reset ownership/permissions on `storage/` and `bootstrap/cache/` to
    `www-data:www-data` with the setgid bit, so PHP-FPM can always write.
 4. Delete stale `bootstrap/cache/routes-v7.php`, `config.php`, etc., then
    `php artisan optimize:clear`.
-5. **Backup** the database via `mysqldump` to
+5. Ensure `public/storage` symlink exists (`php artisan storage:link`) so
+   user-uploaded files (company logos, contract templates, bill PDFs) are
+   reachable.
+6. **Backup** the database via `mysqldump` to
    `/home/coops/backups/<db>-<timestamp>.sql.gz` (last 10 kept).
-6. Run `php artisan migrate --force`.
-7. Pull the latest UI code, `npm ci || npm install`, `npm run build`,
-   sync `dist/` to `public/` (favicons stripped).
-8. Rebuild `config:cache`, `route:cache`, `view:cache` for production.
-9. Reload `php-fpm`.
+7. Run `php artisan migrate --force`.
+8. Pull the latest UI code, `npm ci || npm install`, `npm run build`,
+   sync `dist/` to `public/` (favicons stripped), and re-verify the
+   `public/storage` symlink.
+9. Rebuild `config:cache`, `route:cache`, `view:cache` for production.
+10. Reload `php-fpm`.
 
 > **Do not** run `git pull` directly inside `/home/coops/coops-app` or
 > `/home/coops/coops-ui`. Those directories are not real git checkouts on

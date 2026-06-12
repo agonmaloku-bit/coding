@@ -366,12 +366,21 @@ checkout_source() {
     fi
 
     mkdir -p "$dest"
+    # NOTE: vendor/ and node_modules/ are excluded so updates are incremental
+    # (otherwise rsync --delete wipes them and composer/npm reinstall every package
+    # on every update, leaving a small window where the app is broken).
+    # public/storage is the symlink to storage/app/public — wiping it breaks all
+    # user-uploaded files (company logos, contract templates, etc.).
     rsync -a --delete \
         --exclude '.git' \
         --exclude '.env' \
         --exclude 'storage/' \
         --exclude 'bootstrap/cache/' \
+        --exclude 'vendor/' \
+        --exclude 'node_modules/' \
         --exclude 'public/install/' \
+        --exclude 'public/storage' \
+        --exclude 'public/storage/' \
         "$tmp/$subdir/" "$dest/"
     if [[ -n "$env_backup" ]]; then
         cp "$env_backup" "$dest/.env"
@@ -424,6 +433,13 @@ PHP
     rm -f "$APP_DIR/bootstrap/cache/"{routes-v7.php,routes.php,config.php,packages.php,services.php,compiled.php,events.php}
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan optimize:clear" || \
         sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan cache:clear" || true
+
+    log "Ensuring storage symlink..."
+    mkdir -p "$APP_DIR/storage/app/public"
+    if [[ ! -L "$APP_DIR/public/storage" && ! -e "$APP_DIR/public/storage" ]]; then
+        sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan storage:link" || \
+            ln -sfn "$APP_DIR/storage/app/public" "$APP_DIR/public/storage"
+    fi
 
     backup_database
     sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan migrate --force"
@@ -666,6 +682,13 @@ JSON
     remove_favicon_assets "$APP_DIR/public"
     cp -r "$UI_DIR"/dist/* "$APP_DIR/public/"
     remove_favicon_assets "$APP_DIR/public"
+
+    # 6b. storage symlink for user-uploaded files (company logos, etc.)
+    mkdir -p "$APP_DIR/storage/app/public"
+    if [[ ! -L "$APP_DIR/public/storage" && ! -e "$APP_DIR/public/storage" ]]; then
+        sudo -u "$WEB_USER" -E bash -c "cd '$APP_DIR' && php artisan storage:link" || \
+            ln -sfn "$APP_DIR/storage/app/public" "$APP_DIR/public/storage"
+    fi
 
     # 7. install web wizard
     WIZARD_DST="$APP_DIR/public/install"
