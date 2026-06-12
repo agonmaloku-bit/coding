@@ -1,4 +1,4 @@
-import ScaleLoader from 'vue-spinner/src/ScaleLoader.vue';
+import ScaleLoader from './ScaleLoader.vue';
 
 export default {
     name: "Loader",
